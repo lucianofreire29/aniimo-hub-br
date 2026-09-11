@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const recursos = [
   {
     titulo: "Catálogo de Aniimos",
@@ -34,6 +36,9 @@ export default function Home() {
           </div>
 
           <nav className="hidden gap-6 text-sm text-[var(--muted)] md:flex">
+            <Link className="transition hover:text-white" href="/aniimos">
+              Aniimos
+            </Link>
             <a className="transition hover:text-white" href="#recursos">
               Recursos
             </a>
@@ -57,24 +62,27 @@ export default function Home() {
           </p>
 
           <div className="mt-9 flex flex-wrap gap-3">
+            <Link
+              href="/aniimos"
+              className="rounded-xl bg-[var(--accent)] px-5 py-3 font-bold text-[#0b1020] transition hover:bg-[var(--accent-strong)]"
+            >
+              Explorar Aniimos
+            </Link>
             <a
               href="#recursos"
-              className="rounded-xl bg-[var(--accent)] px-5 py-3 font-bold text-[#0b1020] transition hover:bg-[var(--accent-strong)]"
+              className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-[var(--muted)] transition hover:border-white/20 hover:text-white"
             >
               Conhecer o projeto
             </a>
-            <span className="rounded-xl border border-white/10 px-5 py-3 text-sm text-[var(--muted)]">
-              Catálogo conectado ao Neon em breve
-            </span>
           </div>
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/20">
           <div className="rounded-2xl border border-white/10 bg-[var(--surface)] p-6">
             <p className="text-sm font-semibold text-[var(--accent)]">Base de dados</p>
-            <h2 className="mt-2 text-2xl font-bold">Estrutura pronta para o catálogo</h2>
+            <h2 className="mt-2 text-2xl font-bold">Catálogo conectado ao Neon</h2>
             <p className="mt-3 leading-7 text-[var(--muted)]">
-              Aniimos, formas, atributos, elementos, habilidades, traits, habitats, pathfinding e evoluções já possuem estrutura própria no banco.
+              O catálogo já consulta Aniimos, formas, atributos, elementos, funções e estágios diretamente da base organizada do projeto.
             </p>
           </div>
         </div>
@@ -109,7 +117,7 @@ export default function Home() {
         <div className="max-w-3xl">
           <h2 className="text-3xl font-black tracking-tight">Sobre o projeto</h2>
           <p className="mt-5 leading-8 text-[var(--muted)]">
-            O Aniimo Brasil é um projeto independente voltado à comunidade brasileira. As informações do catálogo serão organizadas com referência às fontes oficiais do jogo e com histórico de verificação no banco de dados.
+            O Aniimo Brasil é um projeto independente voltado à comunidade brasileira. As informações do catálogo são organizadas com referência às fontes oficiais do jogo e com histórico de verificação no banco de dados.
           </p>
         </div>
       </section>
