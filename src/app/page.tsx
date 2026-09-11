@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const recursos = [
   {
     titulo: "Catálogo de Aniimos",
@@ -34,9 +36,9 @@ export default function Home() {
           </div>
 
           <nav className="hidden gap-6 text-sm text-[var(--muted)] md:flex">
-            <a className="transition hover:text-white" href="/aniimos">
+            <Link className="transition hover:text-white" href="/aniimos">
               Aniimos
-            </a>
+            </Link>
             <a className="transition hover:text-white" href="#recursos">
               Recursos
             </a>
@@ -60,12 +62,12 @@ export default function Home() {
           </p>
 
           <div className="mt-9 flex flex-wrap gap-3">
-            <a
+            <Link
               href="/aniimos"
               className="rounded-xl bg-[var(--accent)] px-5 py-3 font-bold text-[#0b1020] transition hover:bg-[var(--accent-strong)]"
             >
               Explorar Aniimos
-            </a>
+            </Link>
             <a
               href="#recursos"
               className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-[var(--muted)] transition hover:border-white/20 hover:text-white"
