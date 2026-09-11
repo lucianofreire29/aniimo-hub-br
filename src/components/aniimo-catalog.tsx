@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import type { AniimoCatalogItem } from "@/types/aniimo";
@@ -178,6 +179,13 @@ export function AniimoCatalog({ aniimos }: AniimoCatalogProps) {
                 <Atributo label="ATK" valor={aniimo.ataque} />
                 <Atributo label="BREAK" valor={aniimo.break} />
               </dl>
+
+              <Link
+                href={`/aniimos/${aniimo.slug}`}
+                className="mt-5 block rounded-xl bg-[var(--accent)] px-4 py-3 text-center text-sm font-black text-[#0b1020] transition hover:bg-[var(--accent-strong)]"
+              >
+                Ver detalhes
+              </Link>
             </div>
           </article>
         ))}
