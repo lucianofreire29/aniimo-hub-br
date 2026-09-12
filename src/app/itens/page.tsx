@@ -10,6 +10,11 @@ export const metadata = {
 
 export default async function ItemsPage() {
   const items = await getItemsCatalog();
+  const categories = new Set(items.map((item) => item.categoria?.slug).filter(Boolean)).size;
+  const officialTranslations = items.filter((item) => item.nomePtBrOrigem === "OFICIAL").length;
+  const aniimoBrasilTranslations = items.filter(
+    (item) => item.nomePtBrOrigem === "ANIIMO_BRASIL",
+  ).length;
 
   return (
     <main className="min-h-[70vh]">
@@ -21,8 +26,15 @@ export default async function ItemsPage() {
             </p>
             <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Itens</h1>
             <p className="mt-5 text-lg leading-8 text-[var(--muted)]">
-              Consulte itens confirmados em fontes oficiais. O catálogo separa o nome canônico em inglês da tradução oficial em português quando ambas estiverem disponíveis.
+              Consulte itens confirmados em fontes oficiais. O Aniimo Brasil prioriza PT-BR na interface, preserva o nome original e identifica quando a tradução é oficial ou editorial.
             </p>
+          </div>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <SummaryCard label="Itens ativos" value={items.length} />
+            <SummaryCard label="Categorias" value={categories} />
+            <SummaryCard label="PT-BR oficial" value={officialTranslations} />
+            <SummaryCard label="Tradução Aniimo Brasil" value={aniimoBrasilTranslations} />
           </div>
         </div>
       </section>
@@ -31,5 +43,14 @@ export default async function ItemsPage() {
         <ItemCatalog items={items} />
       </section>
     </main>
+  );
+}
+
+function SummaryCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-[var(--surface)] p-5">
+      <p className="text-2xl font-black">{value}</p>
+      <p className="mt-1 text-sm font-semibold text-[var(--muted)]">{label}</p>
+    </div>
   );
 }

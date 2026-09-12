@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import type { ItemCatalogItem, TranslationOrigin } from "@/types/item";
@@ -33,7 +34,14 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
     const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
 
     return items.filter((item) => {
-      const searchable = [item.nome, item.nomePtBr, item.descricao, item.descricaoPtBr]
+      const searchable = [
+        item.nome,
+        item.nomePtBr,
+        item.descricao,
+        item.descricaoPtBr,
+        item.categoria?.nome,
+        item.categoria?.nomePtBr,
+      ]
         .filter(Boolean)
         .join(" ")
         .toLocaleLowerCase("pt-BR");
@@ -67,7 +75,7 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Nome ou descrição"
+            placeholder="Nome, descrição ou categoria"
             className="rounded-xl border border-white/10 bg-black/10 px-4 py-3 outline-none transition focus:border-[var(--accent)]/50"
           />
         </label>
@@ -117,7 +125,7 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
           return (
             <article
               key={item.id}
-              className="flex min-h-64 flex-col rounded-2xl border border-white/10 bg-[var(--surface)] p-6"
+              className="flex min-h-72 flex-col rounded-2xl border border-white/10 bg-[var(--surface)] p-6 transition hover:border-[var(--accent)]/30"
             >
               <div className="flex flex-wrap items-center gap-2">
                 {categoryLabel && (
@@ -148,13 +156,18 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
               </p>
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4 text-xs">
-                <span className="text-[var(--muted)]">{item.slug}</span>
+                <Link
+                  href={`/itens/${item.slug}`}
+                  className="rounded-lg bg-[var(--accent)]/10 px-3 py-2 font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
+                >
+                  Ver detalhes →
+                </Link>
                 {item.fonteUrl && (
                   <a
                     href={item.fonteUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-bold text-[var(--accent)] hover:underline"
+                    className="font-bold text-[var(--muted)] hover:text-[var(--accent)] hover:underline"
                   >
                     Fonte oficial ↗
                   </a>
@@ -164,6 +177,12 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
           );
         })}
       </div>
+
+      {!filteredItems.length && (
+        <div className="mt-6 rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-[var(--muted)]">
+          Nenhum item corresponde aos filtros atuais.
+        </div>
+      )}
     </div>
   );
 }
