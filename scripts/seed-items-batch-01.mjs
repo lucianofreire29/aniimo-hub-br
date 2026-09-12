@@ -170,13 +170,19 @@ function loadLocalEnv() {
 
 async function ensureSource(sql, source) {
   const existing = await sql.query(
-    "SELECT id FROM fontes WHERE url = $1 LIMIT 1",
+    "SELECT id, verificado_em FROM fontes WHERE url = $1 LIMIT 1",
     [source.url],
   );
 
   if (existing.length) {
     await sql.query(
-      "UPDATE fontes SET verificado_em = $2, atualizado_em = NOW() WHERE url = $1",
+      `UPDATE fontes
+          SET verificado_em = CASE
+                WHEN verificado_em IS NULL OR verificado_em < $2::timestamptz THEN $2::timestamptz
+                ELSE verificado_em
+              END,
+              atualizado_em = NOW()
+        WHERE url = $1`,
       [source.url, VERIFIED_AT],
     );
     return Number(existing[0].id);
@@ -238,11 +244,7 @@ async function main() {
   const [captureCategory] = await sql.query(
     `INSERT INTO item_categorias (nome, nome_pt_br, slug, descricao, atualizado_em)
      VALUES ('Capture', 'Captura', 'capture', 'Items officially presented as capture items.', NOW())
-     ON CONFLICT (slug) DO UPDATE SET
-       nome = EXCLUDED.nome,
-       nome_pt_br = EXCLUDED.nome_pt_br,
-       descricao = EXCLUDED.descricao,
-       atualizado_em = NOW()
+     ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug
      RETURNING id`,
   );
   const categoryIds = new Map([["capture", Number(captureCategory.id)]]);
@@ -260,12 +262,16 @@ async function main() {
        VALUES ($1, $2, $3, $4, $5, $6, NULL, $7, NULL, $8, TRUE, NOW())
        ON CONFLICT (slug) DO UPDATE SET
          nome = EXCLUDED.nome,
-         nome_pt_br = EXCLUDED.nome_pt_br,
-         descricao = EXCLUDED.descricao,
-         descricao_pt_br = EXCLUDED.descricao_pt_br,
-         categoria_id = EXCLUDED.categoria_id,
-         fonte_id = EXCLUDED.fonte_id,
-         ultima_verificacao = EXCLUDED.ultima_verificacao,
+         nome_pt_br = COALESCE(EXCLUDED.nome_pt_br, itens.nome_pt_br),
+         descricao = COALESCE(EXCLUDED.descricao, itens.descricao),
+         descricao_pt_br = COALESCE(EXCLUDED.descricao_pt_br, itens.descricao_pt_br),
+         categoria_id = COALESCE(EXCLUDED.categoria_id, itens.categoria_id),
+         fonte_id = COALESCE(EXCLUDED.fonte_id, itens.fonte_id),
+         ultima_verificacao = CASE
+           WHEN itens.ultima_verificacao IS NULL OR itens.ultima_verificacao < EXCLUDED.ultima_verificacao
+             THEN EXCLUDED.ultima_verificacao
+           ELSE itens.ultima_verificacao
+         END,
          ativo = TRUE,
          atualizado_em = NOW()`,
       [
