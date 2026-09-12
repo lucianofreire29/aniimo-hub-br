@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "migrate:neon": "node scripts/migrate-neon.mjs",
-    "db:items:init": "node scripts/setup-items.mjs"
+    "db:items:init": "node scripts/setup-items.mjs",
+    "db:items:seed:01": "node scripts/seed-items-batch-01.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
