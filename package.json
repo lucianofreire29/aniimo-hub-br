@@ -43,6 +43,8 @@
     "db:items:seed:02": "node scripts/seed-items-batch-02.mjs",
     "db:items:community:01": "node scripts/seed-items-community-batch-01.mjs",
     "db:items:community:02": "node scripts/seed-items-community-batch-02.mjs",
+    "db:items:official:ptbr:01": "node scripts/seed-items-official-ptbr-batch-01.mjs",
+    "db:items:launch:audit:01": "node scripts/seed-item-launch-audit-01.mjs",
     "db:items:images": "node scripts/seed-item-images.mjs"
   },
   "dependencies": {
