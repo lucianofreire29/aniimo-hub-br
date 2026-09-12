@@ -13,12 +13,12 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
       SELECT
         an.id,
         an.numero,
-        an.nome,
+        COALESCE(an.nome_pt_br, an.nome) AS nome,
         an.slug,
-        an.descricao,
+        COALESCE(an.descricao_pt_br, an.descricao) AS descricao,
         an.imagem_url,
-        fn.nome AS funcao,
-        es.nome AS estagio,
+        COALESCE(fn.nome_pt_br, fn.nome) AS funcao,
+        COALESCE(es.nome_pt_br, es.nome) AS estagio,
         fo.url AS fonte_url
       FROM aniimos an
       LEFT JOIN funcoes fn ON fn.id = an.funcao_id
@@ -42,9 +42,9 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
         SELECT json_agg(
           json_build_object(
             'id', af.id::int,
-            'nome', af.nome,
+            'nome', COALESCE(af.nome_pt_br, af.nome),
             'slug', af.slug,
-            'descricao', af.descricao,
+            'descricao', COALESCE(af.descricao_pt_br, af.descricao),
             'imagemUrl', af.imagem_url,
             'fonteUrl', ff.url,
             'atributos', (
@@ -62,11 +62,11 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
             'elementos', COALESCE((
               SELECT json_agg(
                 json_build_object(
-                  'nome', el.nome,
+                  'nome', COALESCE(el.nome_pt_br, el.nome),
                   'slug', el.slug,
                   'principal', fe.principal
                 )
-                ORDER BY fe.principal DESC, el.nome
+                ORDER BY fe.principal DESC, COALESCE(el.nome_pt_br, el.nome)
               )
               FROM forma_elementos fe
               JOIN elementos el ON el.id = fe.elemento_id
@@ -75,11 +75,11 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
             'traits', COALESCE((
               SELECT json_agg(
                 json_build_object(
-                  'nome', tr.nome,
+                  'nome', COALESCE(tr.nome_pt_br, tr.nome),
                   'slug', tr.slug,
-                  'descricao', COALESCE(ft.descricao_override, tr.descricao)
+                  'descricao', COALESCE(ft.descricao_override, tr.descricao_pt_br, tr.descricao)
                 )
-                ORDER BY tr.nome
+                ORDER BY COALESCE(tr.nome_pt_br, tr.nome)
               )
               FROM forma_traits ft
               JOIN traits tr ON tr.id = ft.trait_id
@@ -88,11 +88,11 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
             'mobilidades', COALESCE((
               SELECT json_agg(
                 json_build_object(
-                  'nome', mo.nome,
+                  'nome', COALESCE(mo.nome_pt_br, mo.nome),
                   'slug', mo.slug,
-                  'descricao', mo.descricao
+                  'descricao', COALESCE(mo.descricao_pt_br, mo.descricao)
                 )
-                ORDER BY mo.nome
+                ORDER BY COALESCE(mo.nome_pt_br, mo.nome)
               )
               FROM forma_mobilidades fm
               JOIN mobilidades mo ON mo.id = fm.mobilidade_id
@@ -101,12 +101,12 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
             'pathfindings', COALESCE((
               SELECT json_agg(
                 json_build_object(
-                  'nome', pf.nome,
+                  'nome', COALESCE(pf.nome_pt_br, pf.nome),
                   'slug', pf.slug,
                   'nivel', fp.nivel,
-                  'descricao', pf.descricao
+                  'descricao', COALESCE(pf.descricao_pt_br, pf.descricao)
                 )
-                ORDER BY pf.nome
+                ORDER BY COALESCE(pf.nome_pt_br, pf.nome)
               )
               FROM forma_pathfindings fp
               JOIN pathfindings pf ON pf.id = fp.pathfinding_id
@@ -115,10 +115,10 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
             'regioes', COALESCE((
               SELECT json_agg(
                 json_build_object(
-                  'nome', rg.nome,
+                  'nome', COALESCE(rg.nome_pt_br, rg.nome),
                   'slug', rg.slug
                 )
-                ORDER BY rg.nome
+                ORDER BY COALESCE(rg.nome_pt_br, rg.nome)
               )
               FROM forma_regioes fr
               JOIN regioes rg ON rg.id = fr.regiao_id
@@ -132,10 +132,10 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
             'habilidades', COALESCE((
               SELECT json_agg(
                 json_build_object(
-                  'nome', hb.nome,
+                  'nome', COALESCE(hb.nome_pt_br, hb.nome),
                   'slug', hb.slug,
-                  'descricao', hb.descricao,
-                  'elemento', hel.nome,
+                  'descricao', COALESCE(hb.descricao_pt_br, hb.descricao),
+                  'elemento', COALESCE(hel.nome_pt_br, hel.nome),
                   'poder', hb.poder::float8,
                   'custo', hb.custo::float8,
                   'cooldown', hb.cooldown::float8,
@@ -143,7 +143,7 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
                   'categoria', hb.categoria,
                   'ordem', fh.ordem
                 )
-                ORDER BY fh.ordem NULLS LAST, hb.nome
+                ORDER BY fh.ordem NULLS LAST, COALESCE(hb.nome_pt_br, hb.nome)
               )
               FROM forma_habilidades fh
               JOIN habilidades hb ON hb.id = fh.habilidade_id
@@ -151,7 +151,7 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
               WHERE fh.forma_id = af.id
             ), '[]'::json)
           )
-          ORDER BY CASE WHEN af.nome = 'Basic Form' THEN 0 ELSE 1 END, af.nome
+          ORDER BY CASE WHEN af.nome = 'Basic Form' THEN 0 ELSE 1 END, COALESCE(af.nome_pt_br, af.nome)
         )
         FROM aniimo_formas af
         LEFT JOIN fontes ff ON ff.id = af.fonte_id
@@ -161,7 +161,7 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
         SELECT json_agg(
           json_build_object(
             'numero', origem.numero,
-            'nome', origem.nome,
+            'nome', COALESCE(origem.nome_pt_br, origem.nome),
             'slug', origem.slug,
             'nivel', ev.nivel,
             'requisito', ev.requisito
@@ -176,7 +176,7 @@ export async function getAniimoBySlug(slug: string): Promise<AniimoDetail | null
         SELECT json_agg(
           json_build_object(
             'numero', destino.numero,
-            'nome', destino.nome,
+            'nome', COALESCE(destino.nome_pt_br, destino.nome),
             'slug', destino.slug,
             'nivel', ev.nivel,
             'requisito', ev.requisito
