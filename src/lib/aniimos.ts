@@ -26,12 +26,12 @@ export async function getAniimosCatalog(): Promise<AniimoCatalogItem[]> {
   const rows = (await sql`
     SELECT
       a.numero,
-      a.nome,
+      COALESCE(a.nome_pt_br, a.nome) AS nome,
       a.slug,
-      f.nome AS funcao,
-      e.nome AS estagio,
+      COALESCE(f.nome_pt_br, f.nome) AS funcao,
+      COALESCE(e.nome_pt_br, e.nome) AS estagio,
       af.id::text AS forma_id,
-      af.nome AS forma_nome,
+      COALESCE(af.nome_pt_br, af.nome) AS forma_nome,
       af.slug AS forma_slug,
       af.imagem_url,
       fa.hp,
@@ -41,7 +41,7 @@ export async function getAniimosCatalog(): Promise<AniimoCatalogItem[]> {
       fa.m_def,
       fa.p_def,
       COALESCE(
-        array_agg(DISTINCT el.nome ORDER BY el.nome)
+        array_agg(DISTINCT COALESCE(el.nome_pt_br, el.nome) ORDER BY COALESCE(el.nome_pt_br, el.nome))
           FILTER (WHERE el.nome IS NOT NULL),
         ARRAY[]::varchar[]
       ) AS elementos
@@ -62,11 +62,15 @@ export async function getAniimosCatalog(): Promise<AniimoCatalogItem[]> {
     GROUP BY
       a.numero,
       a.nome,
+      a.nome_pt_br,
       a.slug,
       f.nome,
+      f.nome_pt_br,
       e.nome,
+      e.nome_pt_br,
       af.id,
       af.nome,
+      af.nome_pt_br,
       af.slug,
       af.imagem_url,
       fa.hp,
