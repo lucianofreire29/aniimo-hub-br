@@ -104,6 +104,15 @@ async function main() {
     }
   }
 
+  const updatedAtColumns = await sql.query(`
+    SELECT table_name
+      FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND column_name = 'atualizado_em'
+       AND table_name IN ('elementos', 'funcoes', 'estagios')
+  `);
+  const tablesWithUpdatedAt = new Set(updatedAtColumns.map((row) => row.table_name));
+
   const [wikiSource] = await sql.query(
     `SELECT id FROM fontes WHERE url = 'https://wiki.aniimo.com/' LIMIT 1`,
   );
@@ -113,10 +122,13 @@ async function main() {
   let translated = 0;
   for (const group of GROUPS) {
     for (const [officialName, ptBrName] of group.entries) {
+      const setClause = tablesWithUpdatedAt.has(group.table)
+        ? "nome_pt_br = $2, atualizado_em = NOW()"
+        : "nome_pt_br = $2";
+
       const rows = await sql.query(
         `UPDATE public."${group.table}"
-            SET nome_pt_br = $2,
-                atualizado_em = NOW()
+            SET ${setClause}
           WHERE LOWER(nome) = LOWER($1)
           RETURNING id, nome, nome_pt_br`,
         [officialName, ptBrName],
