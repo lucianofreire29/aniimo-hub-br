@@ -2,11 +2,17 @@
 
 import { useMemo, useState } from "react";
 
-import type { ItemCatalogItem } from "@/types/item";
+import type { ItemCatalogItem, TranslationOrigin } from "@/types/item";
 
 type ItemCatalogProps = {
   items: ItemCatalogItem[];
 };
+
+function getTranslationLabel(origin: TranslationOrigin | null) {
+  if (origin === "OFICIAL") return "PT-BR oficial";
+  if (origin === "ANIIMO_BRASIL") return "Tradução Aniimo Brasil";
+  return "PT-BR em revisão";
+}
 
 export function ItemCatalog({ items }: ItemCatalogProps) {
   const [search, setSearch] = useState("");
@@ -47,7 +53,7 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
         </p>
         <h2 className="mt-3 text-2xl font-black">Nenhum item cadastrado ainda</h2>
         <p className="mt-4 max-w-2xl leading-7 text-[var(--muted)]">
-          A estrutura do catálogo está pronta. Os itens serão adicionados em lotes usando fontes oficiais do Aniimo, sem preencher informações que ainda não estejam confirmadas.
+          A estrutura do catálogo está pronta. Os itens serão adicionados em lotes usando fontes oficiais do Aniimo e localização em português do Brasil.
         </p>
       </div>
     );
@@ -104,8 +110,9 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {filteredItems.map((item) => {
           const displayName = item.nomePtBr ?? item.nome;
-          const description = item.descricaoPtBr ?? item.descricao;
+          const description = item.descricaoPtBr;
           const categoryLabel = item.categoria?.nomePtBr ?? item.categoria?.nome;
+          const translationLabel = getTranslationLabel(item.nomePtBrOrigem);
 
           return (
             <article
@@ -123,15 +130,21 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
                     Categoria não informada
                   </span>
                 )}
+                <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-[var(--muted)]">
+                  {translationLabel}
+                </span>
               </div>
 
               <h2 className="mt-5 text-2xl font-black tracking-tight">{displayName}</h2>
               {item.nomePtBr && item.nomePtBr !== item.nome && (
-                <p className="mt-1 text-sm text-[var(--muted)]">Nome oficial EN: {item.nome}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">Nome original: {item.nome}</p>
               )}
 
               <p className="mt-4 flex-1 text-sm leading-7 text-[var(--muted)]">
-                {description ?? "Descrição oficial ainda não cadastrada."}
+                {description ??
+                  (item.descricao
+                    ? "Tradução da descrição em PT-BR ainda está em revisão."
+                    : "Descrição ainda não disponível na fonte cadastrada.")}
               </p>
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4 text-xs">
