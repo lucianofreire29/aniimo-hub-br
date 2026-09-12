@@ -32,56 +32,16 @@ const SOURCES = [
 ];
 
 const ITEMS = [
-  {
-    nome: "Basic Experience Gems",
-    slug: "basic-experience-gems",
-    source: "experience-gems",
-  },
-  {
-    nome: "Medium Experience Gems",
-    slug: "medium-experience-gems",
-    source: "experience-gems",
-  },
-  {
-    nome: "Advanced Experience Gems",
-    slug: "advanced-experience-gems",
-    source: "experience-gems",
-  },
-  {
-    nome: "Aniipod",
-    slug: "aniipod",
-    source: "feb-02",
-  },
-  {
-    nome: "Aniipod Pro",
-    slug: "aniipod-pro",
-    source: "feb-02",
-  },
-  {
-    nome: "Aniipod Mega",
-    slug: "aniipod-mega",
-    source: "feb-02",
-  },
-  {
-    nome: "Eggshell Coin",
-    slug: "eggshell-coin",
-    source: "feb-02",
-  },
-  {
-    nome: "Egg Voucher",
-    slug: "egg-voucher",
-    source: "feb-02",
-  },
-  {
-    nome: "Super Egg Voucher",
-    slug: "super-egg-voucher",
-    source: "feb-02",
-  },
-  {
-    nome: "Lightweight Backpack",
-    slug: "lightweight-backpack",
-    source: "jan-29",
-  },
+  { nome: "Basic Experience Gems", nomePtBr: "Gemas de Experiência Básicas", slug: "basic-experience-gems", source: "experience-gems" },
+  { nome: "Medium Experience Gems", nomePtBr: "Gemas de Experiência Médias", slug: "medium-experience-gems", source: "experience-gems" },
+  { nome: "Advanced Experience Gems", nomePtBr: "Gemas de Experiência Avançadas", slug: "advanced-experience-gems", source: "experience-gems" },
+  { nome: "Aniipod", nomePtBr: "Aniicápsula", slug: "aniipod", source: "feb-02" },
+  { nome: "Aniipod Pro", nomePtBr: "Aniicápsula Pro", slug: "aniipod-pro", source: "feb-02" },
+  { nome: "Aniipod Mega", nomePtBr: "Aniicápsula Mega", slug: "aniipod-mega", source: "feb-02" },
+  { nome: "Eggshell Coin", nomePtBr: "Moeda de Casca de Ovo", slug: "eggshell-coin", source: "feb-02" },
+  { nome: "Egg Voucher", nomePtBr: "Vale-Ovo", slug: "egg-voucher", source: "feb-02" },
+  { nome: "Super Egg Voucher", nomePtBr: "Super Vale-Ovo", slug: "super-egg-voucher", source: "feb-02" },
+  { nome: "Lightweight Backpack", nomePtBr: "Mochila Leve", slug: "lightweight-backpack", source: "jan-29" },
 ];
 
 function loadLocalEnv() {
@@ -111,10 +71,7 @@ function loadLocalEnv() {
 }
 
 async function ensureSource(sql, source) {
-  const existing = await sql.query(
-    "SELECT id FROM fontes WHERE url = $1 LIMIT 1",
-    [source.url],
-  );
+  const existing = await sql.query("SELECT id FROM fontes WHERE url = $1 LIMIT 1", [source.url]);
 
   if (existing.length) {
     await sql.query(
@@ -126,14 +83,7 @@ async function ensureSource(sql, source) {
               verificado_em = GREATEST(COALESCE(verificado_em, $6::timestamptz), $6::timestamptz),
               atualizado_em = NOW()
         WHERE url = $1`,
-      [
-        source.url,
-        source.titulo,
-        source.tipo,
-        source.dataPublicacao,
-        source.observacoes,
-        VERIFIED_AT,
-      ],
+      [source.url, source.titulo, source.tipo, source.dataPublicacao, source.observacoes, VERIFIED_AT],
     );
     return Number(existing[0].id);
   }
@@ -145,17 +95,30 @@ async function ensureSource(sql, source) {
      SELECT COALESCE(MAX(id), 0) + 1, $1, $2, $3, $4, $5, $6, NOW(), NOW()
        FROM fontes
      RETURNING id`,
-    [
-      source.titulo,
-      source.tipo,
-      source.url,
-      source.dataPublicacao,
-      VERIFIED_AT,
-      source.observacoes,
-    ],
+    [source.titulo, source.tipo, source.url, source.dataPublicacao, VERIFIED_AT, source.observacoes],
   );
 
   return Number(inserted[0].id);
+}
+
+async function upsertTranslationMeta(sql, itemId, sourceId, item) {
+  const note = item.nome.startsWith("Aniipod")
+    ? "Tradução editorial baseada na terminologia oficial Aniicápsula Ultra."
+    : "Tradução editorial do Aniimo Brasil baseada na fonte oficial em inglês.";
+
+  await sql.query(
+    `INSERT INTO traducoes_pt_br (
+       entidade, entidade_id, campo, origem, fonte_id, observacoes, revisado_em, atualizado_em
+     )
+     VALUES ('itens', $1, 'nome', 'ANIIMO_BRASIL', $2, $3, $4::timestamptz, NOW())
+     ON CONFLICT (entidade, entidade_id, campo) DO UPDATE SET
+       origem = EXCLUDED.origem,
+       fonte_id = COALESCE(EXCLUDED.fonte_id, traducoes_pt_br.fonte_id),
+       observacoes = EXCLUDED.observacoes,
+       revisado_em = EXCLUDED.revisado_em,
+       atualizado_em = NOW()`,
+    [itemId, sourceId, note, VERIFIED_AT],
+  );
 }
 
 async function main() {
@@ -168,21 +131,23 @@ async function main() {
 
   const sql = neon(databaseUrl);
 
-  console.log("1/4 Validando o schema de itens...");
+  console.log("1/5 Validando o schema de itens e localização...");
   const tables = await sql.query(`
     SELECT table_name
       FROM information_schema.tables
      WHERE table_schema = 'public'
-       AND table_name IN ('fontes', 'itens')
+       AND table_name IN ('fontes', 'itens', 'traducoes_pt_br')
   `);
   const tableNames = new Set(tables.map((row) => row.table_name));
-  for (const table of ["fontes", "itens"]) {
+  for (const table of ["fontes", "itens", "traducoes_pt_br"]) {
     if (!tableNames.has(table)) {
-      throw new Error(`Tabela obrigatória ausente: ${table}. Execute npm.cmd run db:items:init primeiro.`);
+      throw new Error(
+        `Tabela obrigatória ausente: ${table}. Execute npm.cmd run db:items:init e npm.cmd run db:ptbr:init primeiro.`,
+      );
     }
   }
 
-  console.log("2/4 Registrando fontes oficiais...");
+  console.log("2/5 Registrando fontes oficiais...");
   const sourceIds = new Map();
   for (const source of SOURCES) {
     const id = await ensureSource(sql, source);
@@ -190,37 +155,40 @@ async function main() {
     console.log(`   OK ${source.titulo}`);
   }
 
-  console.log("3/4 Inserindo lote 02 de itens...");
+  console.log("3/5 Inserindo e localizando lote 02...");
   for (const item of ITEMS) {
     const sourceId = sourceIds.get(item.source);
-
-    await sql.query(
+    const [savedItem] = await sql.query(
       `INSERT INTO itens (
          nome, nome_pt_br, slug, descricao, descricao_pt_br, categoria_id,
          imagem_url, fonte_id, patch_introducao_id, ultima_verificacao, ativo, atualizado_em
        )
-       VALUES ($1, NULL, $2, NULL, NULL, NULL, NULL, $3, NULL, $4, TRUE, NOW())
+       VALUES ($1, $2, $3, NULL, NULL, NULL, NULL, $4, NULL, $5, TRUE, NOW())
        ON CONFLICT (slug) DO UPDATE SET
          nome = EXCLUDED.nome,
+         nome_pt_br = EXCLUDED.nome_pt_br,
          fonte_id = COALESCE(itens.fonte_id, EXCLUDED.fonte_id),
          ultima_verificacao = GREATEST(
            COALESCE(itens.ultima_verificacao, EXCLUDED.ultima_verificacao),
            EXCLUDED.ultima_verificacao
          ),
          ativo = TRUE,
-         atualizado_em = NOW()`,
-      [item.nome, item.slug, sourceId, VERIFIED_AT],
+         atualizado_em = NOW()
+       RETURNING id`,
+      [item.nome, item.nomePtBr, item.slug, sourceId, VERIFIED_AT],
     );
 
-    console.log(`   OK ${item.nome}`);
+    await upsertTranslationMeta(sql, Number(savedItem.id), sourceId, item);
+    console.log(`   OK ${item.nome} / ${item.nomePtBr}`);
   }
 
-  console.log("4/4 Auditando o lote...");
+  console.log("4/5 Auditando traduções...");
   const audit = await sql.query(
-    `SELECT i.slug, i.nome, i.nome_pt_br, c.slug AS categoria, f.url AS fonte_url
+    `SELECT i.slug, i.nome, i.nome_pt_br, f.url AS fonte_url, tn.origem AS nome_origem
        FROM itens i
-       LEFT JOIN item_categorias c ON c.id = i.categoria_id
        LEFT JOIN fontes f ON f.id = i.fonte_id
+       LEFT JOIN traducoes_pt_br tn
+         ON tn.entidade = 'itens' AND tn.entidade_id = i.id AND tn.campo = 'nome'
       WHERE i.slug = ANY($1::text[])
       ORDER BY i.nome`,
     [ITEMS.map((item) => item.slug)],
@@ -231,20 +199,19 @@ async function main() {
   }
 
   for (const row of audit) {
-    if (!row.fonte_url) {
-      throw new Error(`Item sem fonte oficial vinculada: ${row.nome}.`);
+    if (!row.fonte_url || !row.nome_pt_br || row.nome_origem !== "ANIIMO_BRASIL") {
+      throw new Error(`Item sem localização editorial completa: ${row.nome}.`);
     }
-    console.log(
-      `   OK ${row.nome}${row.nome_pt_br ? ` (${row.nome_pt_br})` : ""} | categoria: ${row.categoria ?? "NULL"}`,
-    );
+    console.log(`   OK ${row.nome_pt_br} | EN: ${row.nome} | tradução: ${row.nome_origem}`);
   }
 
+  console.log("5/5 Finalizando lote...");
   const [total] = await sql.query("SELECT COUNT(*)::int AS total FROM itens WHERE ativo = TRUE");
-  console.log(`\nLote 02 concluído. Itens ativos no catálogo: ${total.total}.`);
+  console.log(`\nLote 02 localizado. Itens ativos no catálogo: ${total.total}.`);
 }
 
 main().catch((error) => {
-  console.error("\nFalha ao inserir o lote 02 de itens:");
+  console.error("\nFalha ao inserir/localizar o lote 02 de itens:");
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
 });
