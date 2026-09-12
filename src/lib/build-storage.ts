@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import type { BuildPotential, BuildStatKey } from "@/types/build";
+
 type LocalBuildRecord = {
   carriedItemId: string | null;
   aniimoLevel: number;
   enhancement: 0 | 10 | 20;
+  potential: BuildPotential;
   notes: string;
 };
 
@@ -13,10 +16,19 @@ type LocalBuildState = Record<string, LocalBuildRecord>;
 
 const STORAGE_KEY = "aniimo-brasil:builds:v2";
 const BUILD_EVENT = "aniimo-brasil:builds-alteradas";
+const EMPTY_POTENTIAL: BuildPotential = {
+  hp: 0,
+  ataque: 0,
+  pDef: 0,
+  mDef: 0,
+  break: 0,
+  regen: 0,
+};
 const EMPTY_BUILD: LocalBuildRecord = {
   carriedItemId: null,
   aniimoLevel: 70,
   enhancement: 0,
+  potential: EMPTY_POTENTIAL,
   notes: "",
 };
 
@@ -27,6 +39,25 @@ function sanitizeLevel(value: unknown) {
 
 function sanitizeEnhancement(value: unknown): 0 | 10 | 20 {
   return value === 20 ? 20 : value === 10 ? 10 : 0;
+}
+
+function sanitizePotentialValue(value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return Math.min(20, Math.max(0, Math.round(value)));
+}
+
+function sanitizePotential(value: unknown): BuildPotential {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { ...EMPTY_POTENTIAL };
+  const raw = value as Partial<Record<BuildStatKey, unknown>>;
+
+  return {
+    hp: sanitizePotentialValue(raw.hp),
+    ataque: sanitizePotentialValue(raw.ataque),
+    pDef: sanitizePotentialValue(raw.pDef),
+    mDef: sanitizePotentialValue(raw.mDef),
+    break: sanitizePotentialValue(raw.break),
+    regen: sanitizePotentialValue(raw.regen),
+  };
 }
 
 function sanitizeState(value: unknown): LocalBuildState {
@@ -41,6 +72,7 @@ function sanitizeState(value: unknown): LocalBuildState {
       carriedItemId?: unknown;
       aniimoLevel?: unknown;
       enhancement?: unknown;
+      potential?: unknown;
       notes?: unknown;
     };
 
@@ -48,6 +80,7 @@ function sanitizeState(value: unknown): LocalBuildState {
       carriedItemId: typeof record.carriedItemId === "string" ? record.carriedItemId : null,
       aniimoLevel: sanitizeLevel(record.aniimoLevel),
       enhancement: sanitizeEnhancement(record.enhancement),
+      potential: sanitizePotential(record.potential),
       notes: typeof record.notes === "string" ? record.notes.slice(0, 5000) : "",
     };
   }
@@ -96,7 +129,7 @@ export function useLocalBuilds() {
     (formaId: number, updater: (current: LocalBuildRecord) => LocalBuildRecord) => {
       const currentState = readState();
       const key = String(formaId);
-      const current = currentState[key] ?? EMPTY_BUILD;
+      const current = currentState[key] ?? { ...EMPTY_BUILD, potential: { ...EMPTY_POTENTIAL } };
       const next = { ...currentState, [key]: updater(current) };
       persistState(next);
       setState(next);
@@ -125,6 +158,19 @@ export function useLocalBuilds() {
     [updateRecord],
   );
 
+  const setPotential = useCallback(
+    (formaId: number, stat: BuildStatKey, value: number) => {
+      updateRecord(formaId, (current) => ({
+        ...current,
+        potential: {
+          ...current.potential,
+          [stat]: sanitizePotentialValue(value),
+        },
+      }));
+    },
+    [updateRecord],
+  );
+
   const setNotes = useCallback(
     (formaId: number, notes: string) => {
       updateRecord(formaId, (current) => ({ ...current, notes: notes.slice(0, 5000) }));
@@ -141,14 +187,20 @@ export function useLocalBuilds() {
   }, []);
 
   const getBuild = useCallback(
-    (formaId: number): LocalBuildRecord => state[String(formaId)] ?? EMPTY_BUILD,
+    (formaId: number): LocalBuildRecord => {
+      const record = state[String(formaId)];
+      return record ?? { ...EMPTY_BUILD, potential: { ...EMPTY_POTENTIAL } };
+    },
     [state],
   );
 
   const savedCount = useMemo(
     () =>
       Object.values(state).filter(
-        (record) => record.carriedItemId || record.notes.trim().length > 0,
+        (record) =>
+          record.carriedItemId ||
+          record.notes.trim().length > 0 ||
+          Object.values(record.potential).some((value) => value > 0),
       ).length,
     [state],
   );
@@ -159,6 +211,7 @@ export function useLocalBuilds() {
     setCarriedItem,
     setAniimoLevel,
     setEnhancement,
+    setPotential,
     setNotes,
     clearBuild,
     savedCount,
