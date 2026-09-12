@@ -23,6 +23,9 @@
     "db:ptbr:forms:audit": "node scripts/audit-forms-ptbr.mjs",
     "db:ptbr:forms:pending": "npm run db:ptbr:forms:02 && npm run db:ptbr:forms:03 && npm run db:ptbr:forms:04",
     "db:ptbr:forms:finish": "npm run db:ptbr:forms:05 && npm run db:ptbr:forms:06 && npm run db:ptbr:forms:07 && npm run db:ptbr:forms:audit",
+    "db:ptbr:regions": "node scripts/seed-regions-ptbr.mjs",
+    "db:ptbr:traits": "node scripts/seed-traits-ptbr.mjs",
+    "db:ptbr:taxonomy": "npm run db:ptbr:regions && npm run db:ptbr:traits",
     "db:items:seed:01": "node scripts/seed-items-batch-01.mjs",
     "db:items:seed:02": "node scripts/seed-items-batch-02.mjs"
   },
