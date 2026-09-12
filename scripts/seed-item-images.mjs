@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { neon } from "@neondatabase/serverless";
 
-const VERIFIED_AT = "2026-09-12T20:30:00Z";
+const VERIFIED_AT = "2026-09-12T21:55:00Z";
 
 const ITEM_IMAGES = [
   {
@@ -73,6 +73,11 @@ const ITEM_IMAGES = [
   {
     slug: "prismana-crystal",
     imageUrl: "https://cdn.aniimoverse.com/v1/items/prismana-crystal.webp",
+    provider: "AniimoVerse",
+  },
+  {
+    slug: "auspicious-bell",
+    imageUrl: "https://cdn.aniimoverse.com/v1/items/auspicious-bell.webp",
     provider: "AniimoVerse",
   },
 ];
