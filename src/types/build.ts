@@ -36,3 +36,32 @@ export type BuildFormItem = {
     ordem: number | null;
   }>;
 };
+
+export type BuildStatKey = "ataque" | "break" | "regen";
+
+export type CarriedItem = {
+  id: string;
+  nome: string;
+  slug: string;
+  raridade: "Legendary";
+  cp: number | null;
+  bonusBase: string;
+  efeitoCore: string;
+  escalaPorNivel?: {
+    atributo: BuildStatKey;
+    rotulo: string;
+    valor: number;
+  };
+  melhoria10?: {
+    descricao: string;
+    atributo?: BuildStatKey;
+    rotulo?: string;
+    valor?: number;
+  };
+  melhoria20?: string;
+  fonte: {
+    tipo: "DADOS_DO_JOGO_VIA_COMUNIDADE";
+    url: string;
+    verificadoEm: string;
+  };
+};
