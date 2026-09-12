@@ -91,6 +91,8 @@ const SOURCE_SCOPE_PT_BR: Record<string, string> = {
   EFEITOS: "Efeitos",
   OBTENCAO: "Obtenção",
   IMAGEM: "Imagem",
+  LOCALIZACAO_PT_BR: "Localização oficial PT-BR",
+  HISTORICO_LANCAMENTO: "Histórico do lançamento",
 };
 
 function fallbackLabel(value: string) {
