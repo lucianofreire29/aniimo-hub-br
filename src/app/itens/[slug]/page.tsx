@@ -4,6 +4,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SiteShell } from "@/components/site-shell";
+import {
+  localizeAcquisitionTitle,
+  localizeAcquisitionType,
+  localizeEffectAttribute,
+  localizeItemQuality,
+  localizeItemRarity,
+  localizeLocation,
+  localizeSourceScope,
+} from "@/lib/item-localization";
 import { getItemBySlug } from "@/lib/items";
 import type { TranslationOrigin } from "@/types/item";
 
@@ -67,6 +76,8 @@ export default async function ItemPage({ params }: ItemPageProps) {
   const displayName = item.nomePtBr ?? item.nome;
   const displayDescription = item.descricaoPtBr ?? item.descricao;
   const categoryLabel = item.categoria?.nomePtBr ?? item.categoria?.nome;
+  const rarityLabel = localizeItemRarity(item.raridade);
+  const qualityLabel = localizeItemQuality(item.qualidade);
   const verificationDate = formatVerificationDate(item.ultimaVerificacao);
 
   return (
@@ -103,9 +114,9 @@ export default async function ItemPage({ params }: ItemPageProps) {
                       {categoryLabel}
                     </span>
                   )}
-                  {item.raridade && (
+                  {rarityLabel && (
                     <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold">
-                      {item.raridade}
+                      {rarityLabel}
                     </span>
                   )}
                   {item.temDadosComunitarios && (
@@ -131,8 +142,8 @@ export default async function ItemPage({ params }: ItemPageProps) {
                   {item.cp !== null && (
                     <span className="rounded-lg border border-white/10 px-2.5 py-1.5">CP {item.cp}</span>
                   )}
-                  {item.qualidade && (
-                    <span className="rounded-lg border border-white/10 px-2.5 py-1.5">{item.qualidade}</span>
+                  {qualityLabel && (
+                    <span className="rounded-lg border border-white/10 px-2.5 py-1.5">{qualityLabel}</span>
                   )}
                 </div>
               </div>
@@ -146,7 +157,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
                   </div>
                   <div>
                     <dt className="font-semibold text-[var(--muted)]">Raridade</dt>
-                    <dd className="mt-1 font-bold">{item.raridade ?? "Não informada"}</dd>
+                    <dd className="mt-1 font-bold">{rarityLabel ?? "Não informada"}</dd>
                   </div>
                   <div>
                     <dt className="font-semibold text-[var(--muted)]">Última verificação</dt>
@@ -166,15 +177,17 @@ export default async function ItemPage({ params }: ItemPageProps) {
           <InfoSection eyebrow="Aquisição" title="Como conseguir" empty="Nenhuma forma de obtenção cadastrada ainda.">
             {item.obtencoes.map((obtain) => {
               const quantity = quantityLabel(obtain.quantidadeMin, obtain.quantidadeMax);
+              const obtainTitle = localizeAcquisitionTitle(obtain.titulo);
+              const locationLabel = localizeLocation(obtain.localNome);
               return (
                 <article key={obtain.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-md bg-[var(--accent)]/10 px-2.5 py-1 text-[10px] font-black text-[var(--accent)]">
-                      {obtain.tipo.replaceAll("_", " ")}
+                      {localizeAcquisitionType(obtain.tipo)}
                     </span>
-                    {obtain.localNome && <span className="text-xs text-[var(--muted)]">{obtain.localNome}</span>}
+                    {locationLabel && <span className="text-xs text-[var(--muted)]">{locationLabel}</span>}
                   </div>
-                  <h3 className="mt-3 font-black">{obtain.titulo ?? "Fonte de obtenção"}</h3>
+                  <h3 className="mt-3 font-black">{obtainTitle ?? "Fonte de obtenção"}</h3>
                   {obtain.descricao && <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{obtain.descricao}</p>}
                   <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
                     {quantity && <span>Quantidade: {quantity}</span>}
@@ -197,7 +210,11 @@ export default async function ItemPage({ params }: ItemPageProps) {
                   <span className="rounded-md border border-white/10 px-2.5 py-1 font-black">
                     {effect.nivelMelhoria === 0 ? "Base" : `+${effect.nivelMelhoria}`}
                   </span>
-                  {effect.atributo && <span className="font-bold text-[var(--accent)]">{effect.atributo}</span>}
+                  {effect.atributo && (
+                    <span className="font-bold text-[var(--accent)]">
+                      {localizeEffectAttribute(effect.atributo)}
+                    </span>
+                  )}
                   {effect.valorNumerico !== null && (
                     <span className="font-black">{effect.valorNumerico}{effect.unidade ?? ""}</span>
                   )}
@@ -250,7 +267,11 @@ export default async function ItemPage({ params }: ItemPageProps) {
                   {source.principal && <span className="text-xs text-[var(--muted)]">Principal</span>}
                 </div>
                 <h3 className="mt-3 font-black">{source.titulo ?? source.url}</h3>
-                {source.escopo && <p className="mt-2 text-xs text-[var(--muted)]">Escopo: {source.escopo}</p>}
+                {source.escopo && (
+                  <p className="mt-2 text-xs text-[var(--muted)]">
+                    Escopo: {localizeSourceScope(source.escopo)}
+                  </p>
+                )}
                 <p className="mt-2 text-xs text-[var(--muted)]">
                   Verificado em {formatVerificationDate(source.verificadoEm) ?? "data não informada"} ↗
                 </p>
@@ -262,9 +283,9 @@ export default async function ItemPage({ params }: ItemPageProps) {
         <section className="mx-auto max-w-7xl px-6 pb-12 sm:pb-16">
           <div className="rounded-3xl border border-dashed border-white/15 p-6 sm:p-8">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Política de dados</p>
-            <h2 className="mt-2 text-2xl font-black">Dados evolutivos e rastreáveis</h2>
+            <h2 className="mt-2 text-2xl font-black">Informações em PT-BR com fonte rastreável</h2>
             <p className="mt-4 max-w-4xl leading-7 text-[var(--muted)]">
-              O Aniimo Brasil prioriza fontes oficiais. Dados comunitários, como os reproduzidos do Aniidex, são identificados separadamente e podem mudar com patches. Eles servem como base provisória até que uma publicação oficial permita confirmar ou substituir a informação.
+              O Aniimo Brasil apresenta as informações ao público brasileiro em PT-BR. O nome original e os termos da fonte são preservados internamente para auditoria. Dados comunitários, como os reproduzidos do Aniidex, são identificados separadamente e podem mudar com patches até que uma fonte oficial permita confirmar ou substituir a informação.
             </p>
           </div>
         </section>
