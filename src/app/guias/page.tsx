@@ -7,11 +7,11 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Builds e guias | Aniimo Brasil",
   description:
-    "Consulte dados cadastrados de cada forma, organize itens de referência e salve notas pessoais de build no navegador.",
+    "Consulte dados cadastrados de cada forma, equipe Carried Items e acompanhe os efeitos calculáveis por nível do Aniimo.",
 };
 
 export default async function GuidesPage() {
-  const { forms, items } = await getBuildPlannerData();
+  const { forms, carriedItems } = await getBuildPlannerData();
 
   return (
     <SiteShell>
@@ -25,15 +25,15 @@ export default async function GuidesPage() {
               Planejador de builds
             </h1>
             <p className="mt-5 text-lg leading-8 text-[var(--muted)]">
-              Escolha uma forma para consultar atributos, elementos, traits e habilidades já cadastrados e monte suas próprias referências de itens e estratégia.
+              Escolha uma forma, consulte atributos, traits e habilidades e equipe um Carried Item para visualizar seus efeitos e os bônus que podem ser calculados pelo nível do Aniimo.
             </p>
             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              Nesta primeira versão, itens e notas são escolhas pessoais salvas somente neste navegador. O módulo não apresenta essas escolhas como build oficial ou ranking de meta.
+              Consumíveis, itens de captura e materiais não entram nesta ferramenta. Os efeitos numéricos de Carried Items que ainda não aparecem em uma fonte oficial pública são identificados como dados do jogo reproduzidos por fontes comunitárias e mantidos separados dos dados oficiais do catálogo.
             </p>
           </div>
 
           <div className="mt-10">
-            <BuildPlanner forms={forms} items={items} />
+            <BuildPlanner forms={forms} carriedItems={carriedItems} />
           </div>
         </section>
       </main>
