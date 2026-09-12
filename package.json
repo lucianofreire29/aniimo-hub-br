@@ -10,6 +10,7 @@
     "migrate:neon": "node scripts/migrate-neon.mjs",
     "db:items:init": "node scripts/setup-items.mjs",
     "db:ptbr:init": "node scripts/setup-localization-ptbr.mjs",
+    "db:ptbr:glossary": "node scripts/seed-glossary-ptbr.mjs",
     "db:items:seed:01": "node scripts/seed-items-batch-01.mjs",
     "db:items:seed:02": "node scripts/seed-items-batch-02.mjs"
   },
