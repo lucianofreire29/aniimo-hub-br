@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { localizeItemQuality, localizeItemRarity } from "@/lib/item-localization";
 import type { ItemCatalogItem, TranslationOrigin } from "@/types/item";
 
 type ItemCatalogProps = {
@@ -35,7 +36,11 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
   const rarities = useMemo(
     () =>
       Array.from(new Set(items.map((item) => item.raridade).filter((value): value is string => Boolean(value))))
-        .sort((a, b) => a.localeCompare(b, "pt-BR")),
+        .sort((a, b) => {
+          const labelA = localizeItemRarity(a) ?? a;
+          const labelB = localizeItemRarity(b) ?? b;
+          return labelA.localeCompare(labelB, "pt-BR");
+        }),
     [items],
   );
 
@@ -51,7 +56,9 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
         item.categoria?.nome,
         item.categoria?.nomePtBr,
         item.raridade,
+        localizeItemRarity(item.raridade),
         item.qualidade,
+        localizeItemQuality(item.qualidade),
       ]
         .filter(Boolean)
         .join(" ")
@@ -116,7 +123,7 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
             <option value="all">Todas</option>
             {rarities.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {localizeItemRarity(value) ?? value}
               </option>
             ))}
           </select>
@@ -148,6 +155,8 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
           const description = item.descricaoPtBr ?? item.descricao;
           const categoryLabel = item.categoria?.nomePtBr ?? item.categoria?.nome;
           const translationLabel = getTranslationLabel(item.nomePtBrOrigem);
+          const rarityLabel = localizeItemRarity(item.raridade);
+          const qualityLabel = localizeItemQuality(item.qualidade);
 
           return (
             <article
@@ -185,9 +194,9 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
                       Categoria não informada
                     </span>
                   )}
-                  {item.raridade && (
+                  {rarityLabel && (
                     <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold">
-                      {item.raridade}
+                      {rarityLabel}
                     </span>
                   )}
                   {item.temDadosComunitarios && (
@@ -211,8 +220,8 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
                   {item.cp !== null && (
                     <span className="rounded-lg border border-white/10 px-2.5 py-1.5">CP {item.cp}</span>
                   )}
-                  {item.qualidade && item.qualidade !== item.raridade && (
-                    <span className="rounded-lg border border-white/10 px-2.5 py-1.5">{item.qualidade}</span>
+                  {qualityLabel && qualityLabel !== rarityLabel && (
+                    <span className="rounded-lg border border-white/10 px-2.5 py-1.5">{qualityLabel}</span>
                   )}
                 </div>
 
