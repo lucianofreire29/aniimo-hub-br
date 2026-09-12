@@ -31,6 +31,14 @@ function incoming(elements: ElementInfo[], selected: ElementKey, multiplier: Eff
   return elements.filter((attacker) => ELEMENT_EFFECTIVENESS[attacker.key][selected] === multiplier);
 }
 
+function ElementIcon({ element, className = "h-7 w-7" }: { element: ElementInfo; className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+      <use href={`/elementos/icones.svg#${element.key}`} />
+    </svg>
+  );
+}
+
 export function ElementEffectivenessExplorer() {
   const [selectedKey, setSelectedKey] = useState<ElementKey>("fire");
   const selected = getElement(selectedKey);
@@ -69,12 +77,12 @@ export function ElementEffectivenessExplorer() {
                 onClick={() => setSelectedKey(element.key)}
                 className={`rounded-2xl border px-3 py-3 text-center transition ${
                   active
-                    ? "border-[var(--accent)]/45 bg-[var(--accent)]/10"
+                    ? "border-[var(--accent)]/45 bg-[var(--accent)]/10 text-[var(--accent)]"
                     : "border-white/10 hover:border-white/20 hover:bg-white/[0.03]"
                 }`}
               >
-                <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-xs font-black">
-                  {element.simbolo}
+                <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]">
+                  <ElementIcon element={element} className="h-7 w-7" />
                 </span>
                 <span className="mt-2 block text-xs font-black">{element.nome}</span>
               </button>
@@ -85,8 +93,8 @@ export function ElementEffectivenessExplorer() {
 
       <section className="rounded-3xl border border-[var(--accent)]/25 bg-[var(--surface)] p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-4">
-          <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 text-lg font-black text-[var(--accent)]">
-            {selected.simbolo}
+          <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]">
+            <ElementIcon element={selected} className="h-10 w-10" />
           </span>
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Elemento selecionado</p>
@@ -138,11 +146,14 @@ export function ElementEffectivenessExplorer() {
                 {ELEMENTS.map((defender) => (
                   <th
                     key={defender.key}
-                    className={`border-b border-white/10 px-2 py-4 font-black ${
+                    className={`border-b border-white/10 px-2 py-3 font-black ${
                       defender.key === selectedKey ? "bg-[var(--accent)]/10 text-[var(--accent)]" : ""
                     }`}
                   >
-                    {defender.nome}
+                    <span className="flex flex-col items-center gap-1.5">
+                      <ElementIcon element={defender} className="h-6 w-6" />
+                      <span>{defender.nome}</span>
+                    </span>
                   </th>
                 ))}
               </tr>
@@ -154,11 +165,12 @@ export function ElementEffectivenessExplorer() {
                     <button
                       type="button"
                       onClick={() => setSelectedKey(attacker.key)}
-                      className={`w-full rounded-lg px-2 py-2 text-left font-black transition hover:bg-white/[0.05] ${
+                      className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left font-black transition hover:bg-white/[0.05] ${
                         attacker.key === selectedKey ? "text-[var(--accent)]" : ""
                       }`}
                     >
-                      {attacker.nome}
+                      <ElementIcon element={attacker} className="h-6 w-6 shrink-0" />
+                      <span>{attacker.nome}</span>
                     </button>
                   </th>
                   {ELEMENTS.map((defender) => {
@@ -207,7 +219,8 @@ function RelationCard({
             <div className="mt-2 flex flex-wrap gap-2">
               {row.elements.length ? (
                 row.elements.map((element) => (
-                  <span key={element.key} className="rounded-full border border-white/10 bg-[var(--surface)] px-3 py-1.5 text-xs font-bold">
+                  <span key={element.key} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[var(--surface)] px-3 py-1.5 text-xs font-bold">
+                    <ElementIcon element={element} className="h-4 w-4" />
                     {element.nome}
                   </span>
                 ))
