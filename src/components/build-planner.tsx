@@ -5,35 +5,60 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { useLocalBuilds } from "@/lib/build-storage";
-import type { BuildFormItem } from "@/types/build";
-import type { ItemCatalogItem } from "@/types/item";
+import type { BuildFormItem, BuildStatKey, CarriedItem } from "@/types/build";
 
 type BuildPlannerProps = {
   forms: BuildFormItem[];
-  items: ItemCatalogItem[];
+  carriedItems: CarriedItem[];
 };
 
 function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 function numeroFormatado(numero: number) {
   return `#${String(numero).padStart(3, "0")}`;
 }
 
-function itemName(item: ItemCatalogItem) {
-  return item.nomePtBr ?? item.nome;
+function formatBonus(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(".", ",");
 }
 
-function itemDescription(item: ItemCatalogItem) {
-  return item.descricaoPtBr ?? item.descricao;
+function getStatValue(form: BuildFormItem, stat: BuildStatKey) {
+  return form.atributos?.[stat] ?? null;
 }
 
-export function BuildPlanner({ forms, items }: BuildPlannerProps) {
-  const { isReady, getBuild, setNotes, toggleItem, clearBuild, savedCount } = useLocalBuilds();
+function calculateFlatGain(item: CarriedItem | null, level: number, enhancement: 0 | 10 | 20) {
+  if (!item?.escalaPorNivel) return null;
+
+  let value = item.escalaPorNivel.valor * level;
+  if (
+    enhancement >= 10 &&
+    item.melhoria10?.atributo === item.escalaPorNivel.atributo &&
+    typeof item.melhoria10.valor === "number"
+  ) {
+    value += item.melhoria10.valor;
+  }
+
+  return {
+    atributo: item.escalaPorNivel.atributo,
+    rotulo: item.escalaPorNivel.rotulo,
+    value,
+  };
+}
+
+export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
+  const {
+    isReady,
+    getBuild,
+    setCarriedItem,
+    setAniimoLevel,
+    setEnhancement,
+    setNotes,
+    clearBuild,
+    savedCount,
+  } = useLocalBuilds();
+
   const [activeFormaId, setActiveFormaId] = useState<number | null>(forms[0]?.formaId ?? null);
   const [formSearch, setFormSearch] = useState("");
   const [itemSearch, setItemSearch] = useState("");
@@ -62,48 +87,35 @@ export function BuildPlanner({ forms, items }: BuildPlannerProps) {
 
   const visibleItems = useMemo(() => {
     const query = normalize(itemSearch.trim());
-    if (!query) return items;
+    if (!query) return carriedItems;
 
-    return items.filter((item) =>
-      normalize(
-        [
-          itemName(item),
-          item.nome,
-          item.categoria?.nomePtBr ?? "",
-          item.categoria?.nome ?? "",
-          itemDescription(item) ?? "",
-        ].join(" "),
-      ).includes(query),
+    return carriedItems.filter((item) =>
+      normalize([item.nome, item.bonusBase, item.efeitoCore].join(" ")).includes(query),
     );
-  }, [itemSearch, items]);
+  }, [carriedItems, itemSearch]);
 
   if (!activeForm) {
     return (
       <div className="rounded-3xl border border-dashed border-white/10 p-10 text-center">
         <h2 className="text-xl font-black">Nenhuma forma disponível</h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          O planejador será liberado assim que houver formas cadastradas no banco.
-        </p>
+        <p className="mt-2 text-sm text-[var(--muted)]">Cadastre formas antes de usar o planejador.</p>
       </div>
     );
   }
 
   const build = getBuild(activeForm.formaId);
-  const selectedItemSet = new Set(build.itemIds);
-  const selectedItems = build.itemIds
-    .map((itemId) => items.find((item) => item.id === itemId) ?? null)
-    .filter((item): item is ItemCatalogItem => item !== null);
+  const activeItem = carriedItems.find((item) => item.id === build.carriedItemId) ?? null;
+  const flatGain = calculateFlatGain(activeItem, build.aniimoLevel, build.enhancement);
+  const currentStat = flatGain ? getStatValue(activeForm, flatGain.atributo) : null;
 
   return (
     <div className="grid gap-6 xl:grid-cols-[19rem_minmax(0,1fr)]">
       <aside className="self-start rounded-3xl border border-white/10 bg-[var(--surface)] p-4 xl:sticky xl:top-24">
-        <div className="flex items-center justify-between gap-3 px-1">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Aniimos e formas</p>
-            <p className="mt-1 text-sm font-semibold text-[var(--accent)]">
-              {isReady ? `${savedCount} build${savedCount === 1 ? "" : "s"} salva${savedCount === 1 ? "" : "s"}` : "Carregando..."}
-            </p>
-          </div>
+        <div className="px-1">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Aniimos e formas</p>
+          <p className="mt-1 text-sm font-semibold text-[var(--accent)]">
+            {isReady ? `${savedCount} build${savedCount === 1 ? "" : "s"} salva${savedCount === 1 ? "" : "s"}` : "Carregando..."}
+          </p>
         </div>
 
         <input
@@ -111,14 +123,14 @@ export function BuildPlanner({ forms, items }: BuildPlannerProps) {
           value={formSearch}
           onChange={(event) => setFormSearch(event.target.value)}
           placeholder="Buscar Aniimo ou forma..."
-          className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5 text-sm outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--accent)]/50"
+          className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5 text-sm outline-none focus:border-[var(--accent)]/50"
         />
 
         <div className="mt-4 max-h-[68vh] space-y-2 overflow-y-auto pr-1">
           {visibleForms.map((form) => {
             const selected = form.formaId === activeForm.formaId;
             const saved = getBuild(form.formaId);
-            const hasSavedBuild = saved.itemIds.length > 0 || saved.notes.trim().length > 0;
+            const hasSavedBuild = Boolean(saved.carriedItemId || saved.notes.trim());
 
             return (
               <button
@@ -136,23 +148,15 @@ export function BuildPlanner({ forms, items }: BuildPlannerProps) {
               >
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/[0.03] p-1">
                   {form.imagemUrl ? (
-                    <Image
-                      src={form.imagemUrl}
-                      alt={form.aniimoNome}
-                      width={72}
-                      height={72}
-                      className="h-full w-full object-contain"
-                    />
+                    <Image src={form.imagemUrl} alt={form.aniimoNome} width={72} height={72} className="h-full w-full object-contain" />
                   ) : (
                     <span className="text-[9px] text-[var(--muted)]">Sem imagem</span>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-black text-[var(--accent)]">
-                      {numeroFormatado(form.aniimoNumero)}
-                    </span>
-                    {hasSavedBuild && <span className="text-xs text-[var(--accent)]" title="Build salva">●</span>}
+                    <span className="text-[10px] font-black text-[var(--accent)]">{numeroFormatado(form.aniimoNumero)}</span>
+                    {hasSavedBuild && <span className="text-xs text-[var(--accent)]">●</span>}
                   </div>
                   <p className="truncate text-sm font-black">{form.aniimoNome}</p>
                   <p className="truncate text-xs text-[var(--muted)]">{form.formaNome}</p>
@@ -176,7 +180,7 @@ export function BuildPlanner({ forms, items }: BuildPlannerProps) {
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <span className="text-sm font-semibold text-[var(--muted)]">Imagem em breve</span>
+                <span className="text-sm text-[var(--muted)]">Imagem em breve</span>
               )}
             </div>
 
@@ -184,41 +188,23 @@ export function BuildPlanner({ forms, items }: BuildPlannerProps) {
               <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
                 <span className="text-[var(--accent)]">{numeroFormatado(activeForm.aniimoNumero)}</span>
                 <span className="rounded-full border border-white/10 px-2.5 py-1 text-[var(--muted)]">{activeForm.funcao}</span>
-                {activeForm.estagio && (
-                  <span className="rounded-full border border-white/10 px-2.5 py-1 text-[var(--muted)]">{activeForm.estagio}</span>
-                )}
+                {activeForm.estagio && <span className="rounded-full border border-white/10 px-2.5 py-1 text-[var(--muted)]">{activeForm.estagio}</span>}
               </div>
-              <h2 className="mt-3 text-3xl font-black tracking-tight">{activeForm.aniimoNome}</h2>
-              <p className="mt-1 text-base font-semibold text-[var(--muted)]">{activeForm.formaNome}</p>
-
+              <h2 className="mt-3 text-3xl font-black">{activeForm.aniimoNome}</h2>
+              <p className="mt-1 font-semibold text-[var(--muted)]">{activeForm.formaNome}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {activeForm.elementos.map((elemento) => (
-                  <span
-                    key={`${elemento.nome}-${elemento.principal}`}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold ${
-                      elemento.principal
-                        ? "border-[var(--accent)]/35 bg-[var(--accent)]/10 text-[var(--accent)]"
-                        : "border-white/10 text-[var(--muted)]"
-                    }`}
-                  >
+                  <span key={`${elemento.nome}-${elemento.principal}`} className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-[var(--muted)]">
                     {elemento.nome}{elemento.principal ? " • principal" : ""}
                   </span>
                 ))}
               </div>
-
               <div className="mt-5 flex flex-wrap gap-3">
-                <Link
-                  href={`/aniimos/${activeForm.aniimoSlug}#${activeForm.formaSlug}`}
-                  className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-black text-black transition hover:brightness-110"
-                >
+                <Link href={`/aniimos/${activeForm.aniimoSlug}#${activeForm.formaSlug}`} className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-black text-black">
                   Ver detalhes completos
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => clearBuild(activeForm.formaId)}
-                  className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-bold text-[var(--muted)] transition hover:border-white/20 hover:text-white"
-                >
-                  Limpar build pessoal
+                <button type="button" onClick={() => clearBuild(activeForm.formaId)} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-bold text-[var(--muted)]">
+                  Limpar build
                 </button>
               </div>
             </div>
@@ -230,7 +216,7 @@ export function BuildPlanner({ forms, items }: BuildPlannerProps) {
             <h2 className="text-xl font-black">Atributos cadastrados</h2>
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
               <Stat label="HP" value={activeForm.atributos.hp} />
-              <Stat label="Ataque" value={activeForm.atributos.ataque} />
+              <Stat label="ATK" value={activeForm.atributos.ataque} />
               <Stat label="BREAK" value={activeForm.atributos.break} />
               <Stat label="REGEN" value={activeForm.atributos.regen} />
               <Stat label="M. DEF" value={activeForm.atributos.mDef} />
@@ -238,6 +224,112 @@ export function BuildPlanner({ forms, items }: BuildPlannerProps) {
             </div>
           </section>
         )}
+
+        <section className="rounded-3xl border border-[var(--accent)]/25 bg-[var(--surface)] p-5 sm:p-6">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Equipamento do Aniimo</p>
+          <h2 className="mt-2 text-2xl font-black">Carried Item</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
+            Aqui entram apenas itens equipáveis no Aniimo. Consumíveis, itens de captura e materiais não aparecem nesta seleção.
+          </p>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <label>
+              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Nível do Aniimo</span>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={build.aniimoLevel}
+                onChange={(event) => setAniimoLevel(activeForm.formaId, Number(event.target.value))}
+                className="w-full rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3 outline-none focus:border-[var(--accent)]/50"
+              />
+            </label>
+            <label>
+              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Melhoria do item</span>
+              <select
+                value={build.enhancement}
+                onChange={(event) => setEnhancement(activeForm.formaId, Number(event.target.value) as 0 | 10 | 20)}
+                className="w-full rounded-xl border border-white/10 bg-[var(--surface)] px-4 py-3 outline-none"
+              >
+                <option value={0}>Base</option>
+                <option value={10}>+10</option>
+                <option value={20}>+20</option>
+              </select>
+            </label>
+          </div>
+
+          <input
+            type="search"
+            value={itemSearch}
+            onChange={(event) => setItemSearch(event.target.value)}
+            placeholder="Buscar Carried Item ou efeito..."
+            className="mt-5 w-full rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3 text-sm outline-none focus:border-[var(--accent)]/50"
+          />
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {visibleItems.map((item) => {
+              const selected = activeItem?.id === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setCarriedItem(activeForm.formaId, selected ? null : item.id)}
+                  className={`rounded-2xl border p-4 text-left transition ${selected ? "border-[var(--accent)]/45 bg-[var(--accent)]/10" : "border-white/10 hover:border-white/20"}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-black">{item.nome}</h3>
+                      <p className="mt-1 text-xs font-bold text-[var(--accent)]">{item.raridade} • CP {item.cp ?? "—"}</p>
+                    </div>
+                    <span className="text-lg">{selected ? "✓" : "+"}</span>
+                  </div>
+                  <p className="mt-3 text-sm font-bold">{item.bonusBase}</p>
+                  <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{item.efeitoCore}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          {activeItem && (
+            <div className="mt-6 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--accent)]">Equipado</p>
+                  <h3 className="mt-1 text-2xl font-black">{activeItem.nome}</h3>
+                </div>
+                <button type="button" onClick={() => setCarriedItem(activeForm.formaId, null)} className="text-sm font-bold text-[var(--muted)] hover:text-white">Remover</button>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <Effect title="Bônus-base" text={activeItem.bonusBase} />
+                <Effect title="Efeito principal" text={activeItem.efeitoCore} />
+                {build.enhancement >= 10 && activeItem.melhoria10 && <Effect title="Efeito +10" text={activeItem.melhoria10.descricao} />}
+                {build.enhancement >= 20 && activeItem.melhoria20 && <Effect title="Efeito +20" text={activeItem.melhoria20} />}
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-white/10 bg-[var(--surface)] p-4">
+                <h4 className="font-black">Impacto calculável neste Aniimo</h4>
+                {flatGain ? (
+                  <>
+                    <p className="mt-2 text-3xl font-black text-[var(--accent)]">+{formatBonus(flatGain.value)} {flatGain.rotulo}</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                      Calculado para o nível {build.aniimoLevel}{build.enhancement >= 10 && activeItem.melhoria10?.valor ? ` e item +${build.enhancement}` : ""}.
+                      {currentStat !== null ? ` O atributo cadastrado desta forma é ${currentStat}; o bônus do equipamento é exibido separadamente para não misturar fórmulas ainda não confirmadas.` : ""}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    Este item trabalha com bônus percentuais ou efeitos condicionais. O efeito é mostrado acima, mas não transformamos isso em um número final sem uma fórmula confirmada do jogo.
+                  </p>
+                )}
+              </div>
+
+              <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
+                Fonte dos valores: dados do jogo reproduzidos por fonte comunitária, verificados em {activeItem.fonte.verificadoEm}. Não são apresentados como publicação oficial do Aniimo Brasil.
+              </p>
+            </div>
+          )}
+        </section>
 
         <section className="grid gap-6 lg:grid-cols-2">
           <InfoSection title="Traits" emptyText="Nenhuma trait cadastrada para esta forma.">
@@ -248,128 +340,26 @@ export function BuildPlanner({ forms, items }: BuildPlannerProps) {
               </div>
             ))}
           </InfoSection>
-
           <InfoSection title="Habilidades" emptyText="Nenhuma habilidade cadastrada para esta forma.">
             {activeForm.habilidades.map((habilidade) => (
               <div key={`${habilidade.ordem ?? "x"}-${habilidade.nome}`} className="rounded-2xl border border-white/10 bg-[var(--surface)] p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <h3 className="font-black">{habilidade.nome}</h3>
-                  {habilidade.elemento && (
-                    <span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-bold text-[var(--muted)]">
-                      {habilidade.elemento}
-                    </span>
-                  )}
-                </div>
+                <h3 className="font-black">{habilidade.nome}</h3>
                 {habilidade.descricao && <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{habilidade.descricao}</p>}
-                <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-[var(--muted)]">
-                  {habilidade.categoria && <span>{habilidade.categoria}</span>}
-                  {habilidade.tipoAtaque && <span>• {habilidade.tipoAtaque}</span>}
-                  {habilidade.poder !== null && <span>• Poder {habilidade.poder}</span>}
-                  {habilidade.custo !== null && <span>• Custo {habilidade.custo}</span>}
-                  {habilidade.cooldown !== null && <span>• Cooldown {habilidade.cooldown}</span>}
-                </div>
               </div>
             ))}
           </InfoSection>
         </section>
 
-        <section className="rounded-3xl border border-[var(--accent)]/20 bg-[var(--surface)] p-5 sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Build pessoal</p>
-              <h2 className="mt-2 text-2xl font-black">Itens de referência</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-                Selecione itens que você quer considerar nesta build. A seleção é pessoal e não representa recomendação oficial ou ranking de meta.
-              </p>
-            </div>
-            <span className="text-sm font-semibold text-[var(--muted)]">{selectedItems.length} selecionado{selectedItems.length === 1 ? "" : "s"}</span>
-          </div>
-
-          {selectedItems.length > 0 && (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {selectedItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent)]/5 p-3">
-                  <ItemImage item={item} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black">{itemName(item)}</p>
-                    <p className="truncate text-xs text-[var(--muted)]">{item.categoria?.nomePtBr ?? item.categoria?.nome ?? "Sem categoria"}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleItem(activeForm.formaId, item.id)}
-                    className="rounded-lg px-2 py-1 text-xs font-black text-[var(--muted)] transition hover:text-white"
-                    aria-label={`Remover ${itemName(item)}`}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <input
-            type="search"
-            value={itemSearch}
-            onChange={(event) => setItemSearch(event.target.value)}
-            placeholder="Buscar item ou categoria..."
-            className="mt-6 w-full rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3 text-sm outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--accent)]/50"
-          />
-
-          <div className="mt-4 max-h-[30rem] overflow-y-auto pr-1">
-            {visibleItems.length ? (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {visibleItems.map((item) => {
-                  const selected = selectedItemSet.has(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => toggleItem(activeForm.formaId, item.id)}
-                      className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${
-                        selected
-                          ? "border-[var(--accent)]/35 bg-[var(--accent)]/10"
-                          : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-                      }`}
-                    >
-                      <ItemImage item={item} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-sm font-black">{itemName(item)}</p>
-                          {selected && <span className="text-xs font-black text-[var(--accent)]">✓</span>}
-                        </div>
-                        <p className="truncate text-xs text-[var(--muted)]">{item.categoria?.nomePtBr ?? item.categoria?.nome ?? "Sem categoria"}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-[var(--muted)]">
-                Nenhum item encontrado para esta busca.
-              </div>
-            )}
-          </div>
-        </section>
-
         <section className="rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-black">Notas da build</h2>
-              <p className="mt-1 text-sm text-[var(--muted)]">Estratégia, combinações, testes ou lembretes pessoais.</p>
-            </div>
-            <span className="text-xs font-semibold text-[var(--muted)]">{build.notes.length}/5000</span>
-          </div>
+          <h2 className="text-xl font-black">Notas pessoais da build</h2>
           <textarea
             value={build.notes}
             onChange={(event) => setNotes(activeForm.formaId, event.target.value)}
-            maxLength={5000}
-            rows={7}
-            placeholder="Ex.: testar foco em BREAK, comparar item X com Y, combinar com determinado time..."
-            className="mt-4 w-full resize-y rounded-2xl border border-white/10 bg-[var(--surface)] px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--accent)]/50"
+            rows={6}
+            placeholder="Ex.: rotação, parceiro, situação em que pretende usar este Carried Item..."
+            className="mt-4 w-full resize-y rounded-2xl border border-white/10 bg-[var(--surface)] px-4 py-3 text-sm leading-6 outline-none focus:border-[var(--accent)]/50"
           />
-          <p className="mt-3 text-xs text-[var(--muted)]">
-            {isReady ? "Itens e notas são salvos automaticamente neste navegador." : "Carregando dados locais..."}
-          </p>
+          <p className="mt-2 text-xs text-[var(--muted)]">Salvo automaticamente neste navegador.</p>
         </section>
       </div>
     </div>
@@ -378,47 +368,28 @@ export function BuildPlanner({ forms, items }: BuildPlannerProps) {
 
 function Stat({ label, value }: { label: string; value: number | null }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[var(--surface)] p-4 text-center">
+    <div className="rounded-2xl border border-white/10 bg-[var(--surface)] p-4">
       <p className="text-xs font-bold text-[var(--muted)]">{label}</p>
       <p className="mt-1 text-xl font-black">{value ?? "—"}</p>
     </div>
   );
 }
 
-function InfoSection({
-  title,
-  emptyText,
-  children,
-}: {
-  title: string;
-  emptyText: string;
-  children: React.ReactNode;
-}) {
-  const list = Array.isArray(children) ? children : [children];
-  const hasContent = list.length > 0 && list.some(Boolean);
-
+function Effect({ title, text }: { title: string; text: string }) {
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
-      <h2 className="text-xl font-black">{title}</h2>
-      {hasContent ? <div className="mt-4 space-y-3">{children}</div> : <p className="mt-3 text-sm text-[var(--muted)]">{emptyText}</p>}
-    </section>
+    <div className="rounded-2xl border border-white/10 bg-[var(--surface)] p-4">
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">{title}</p>
+      <p className="mt-2 text-sm leading-6">{text}</p>
+    </div>
   );
 }
 
-function ItemImage({ item }: { item: ItemCatalogItem }) {
+function InfoSection({ title, emptyText, children }: { title: string; emptyText: string; children: React.ReactNode }) {
+  const count = Array.isArray(children) ? children.length : children ? 1 : 0;
   return (
-    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/[0.03] p-1">
-      {item.imagemUrl ? (
-        <Image
-          src={item.imagemUrl}
-          alt={itemName(item)}
-          width={72}
-          height={72}
-          className="h-full w-full object-contain"
-        />
-      ) : (
-        <span className="text-[9px] text-[var(--muted)]">Sem imagem</span>
-      )}
-    </div>
+    <section className="rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
+      <h2 className="text-xl font-black">{title}</h2>
+      {count > 0 ? <div className="mt-4 space-y-3">{children}</div> : <p className="mt-3 text-sm text-[var(--muted)]">{emptyText}</p>}
+    </section>
   );
 }
