@@ -9,7 +9,14 @@ export function SiteFooter() {
         <div>
           <p className="font-black">Aniimo Brasil</p>
           <p className="mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">
-            Portal independente em português com informações, ferramentas e recursos para a comunidade de Aniimo.
+            Projeto de fã, independente e não oficial, criado em português para reunir informações,
+            ferramentas e recursos para a comunidade brasileira de Aniimo.
+          </p>
+          <p className="mt-3 max-w-xl text-xs leading-5 text-[var(--muted)]">
+            O Aniimo Brasil não é afiliado, patrocinado, administrado ou endossado pelos criadores,
+            publicadores ou demais titulares de Aniimo. Nomes, marcas, imagens e outros materiais
+            oficiais mencionados pertencem aos seus respectivos titulares e são usados apenas para
+            fins informativos e de identificação.
           </p>
         </div>
 
@@ -37,7 +44,7 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-white/10 px-6 py-5 text-center text-xs text-[var(--muted)]">
-        Aniimo Brasil • Projeto independente em desenvolvimento
+        Aniimo Brasil • Projeto de fã não oficial e independente
       </div>
     </footer>
   );
