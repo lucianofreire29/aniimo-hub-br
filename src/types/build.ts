@@ -37,7 +37,9 @@ export type BuildFormItem = {
   }>;
 };
 
-export type BuildStatKey = "ataque" | "break" | "regen";
+export type BuildStatKey = "hp" | "ataque" | "pDef" | "mDef" | "break" | "regen";
+
+export type BuildPotential = Record<BuildStatKey, number>;
 
 export type CarriedItem = {
   id: string;
