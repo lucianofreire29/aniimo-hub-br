@@ -25,7 +25,7 @@ const SOURCES = [
     key: "jan-29",
     titulo: "January 29 Update Notice",
     tipo: "SITE_OFICIAL",
-    url: "https://aniimo.com/newslist/detail/100013",
+    url: "https://www.aniimo.com/newslist/detail/100013",
     dataPublicacao: "2026-01-29T00:00:00Z",
     observacoes: "Aviso oficial usado para confirmar Lightweight Backpack.",
   },
