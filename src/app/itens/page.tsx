@@ -6,16 +6,15 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Itens | Aniimo Brasil",
-  description: "Catálogo de itens do Aniimo Brasil com dados organizados a partir de fontes oficiais.",
+  description:
+    "Catálogo de itens do Aniimo Brasil com dados oficiais e comunitários rastreáveis, raridade, categorias e referências.",
 };
 
 export default async function ItemsPage() {
   const items = await getItemsCatalog();
   const categories = new Set(items.map((item) => item.categoria?.slug).filter(Boolean)).size;
   const officialTranslations = items.filter((item) => item.nomePtBrOrigem === "OFICIAL").length;
-  const aniimoBrasilTranslations = items.filter(
-    (item) => item.nomePtBrOrigem === "ANIIMO_BRASIL",
-  ).length;
+  const communityItems = items.filter((item) => item.temDadosComunitarios).length;
 
   return (
     <SiteShell>
@@ -28,7 +27,7 @@ export default async function ItemsPage() {
               </p>
               <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Itens</h1>
               <p className="mt-5 text-lg leading-8 text-[var(--muted)]">
-                Consulte itens confirmados em fontes oficiais. O Aniimo Brasil prioriza PT-BR na interface, preserva o nome original e identifica quando a tradução é oficial ou editorial.
+                Consulte itens, categorias, raridades, efeitos e formas de obtenção. Dados oficiais continuam priorizados; quando uma informação vem de uma base comunitária, a origem e a data de verificação ficam identificadas para revisão futura.
               </p>
             </div>
 
@@ -36,7 +35,7 @@ export default async function ItemsPage() {
               <SummaryCard label="Itens ativos" value={items.length} />
               <SummaryCard label="Categorias" value={categories} />
               <SummaryCard label="PT-BR oficial" value={officialTranslations} />
-              <SummaryCard label="Tradução Aniimo Brasil" value={aniimoBrasilTranslations} />
+              <SummaryCard label="Com dados comunitários" value={communityItems} />
             </div>
           </div>
         </section>
