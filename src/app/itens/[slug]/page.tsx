@@ -42,8 +42,19 @@ function formatVerificationDate(value: string | null) {
 
 function sourceLabel(tipo: string) {
   if (tipo === "COMUNIDADE_ANIIDEX") return "Aniidex · comunidade";
+  if (tipo === "COMUNIDADE_ASSET") return "Imagem comunitária";
   if (tipo.includes("OFICIAL")) return "Fonte oficial";
   return tipo.replaceAll("_", " ");
+}
+
+function changeTypeLabel(tipo: string) {
+  if (tipo === "SISTEMA_RETRABALHADO") return "Sistema retrabalhado";
+  if (tipo === "BUFF") return "Buff";
+  if (tipo === "NERF") return "Nerf";
+  return tipo
+    .replaceAll("_", " ")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/^./, (letter) => letter.toLocaleUpperCase("pt-BR"));
 }
 
 function quantityLabel(min: number | null, max: number | null) {
@@ -247,6 +258,40 @@ export default async function ItemPage({ params }: ItemPageProps) {
             })}
           </InfoSection>
 
+          <InfoSection eyebrow="Versões e patches" title="Histórico e atualizações" empty="Nenhuma mudança de versão cadastrada para este item.">
+            {item.alteracoes.map((change) => {
+              const content = (
+                <article className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-[var(--accent)]/10 px-2.5 py-1 text-[10px] font-black text-[var(--accent)]">
+                      {changeTypeLabel(change.tipo)}
+                    </span>
+                    {change.verificadoEm && (
+                      <span className="text-xs text-[var(--muted)]">
+                        Verificado em {formatVerificationDate(change.verificadoEm)}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="mt-3 font-black">{change.resumo}</h3>
+                  {change.detalhes && (
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{change.detalhes}</p>
+                  )}
+                  {change.fonteUrl && (
+                    <p className="mt-3 text-xs font-bold text-[var(--accent)]">Abrir fonte ↗</p>
+                  )}
+                </article>
+              );
+
+              return change.fonteUrl ? (
+                <a key={change.id} href={change.fonteUrl} target="_blank" rel="noreferrer" className="block">
+                  {content}
+                </a>
+              ) : (
+                <div key={change.id}>{content}</div>
+              );
+            })}
+          </InfoSection>
+
           <InfoSection eyebrow="Rastreabilidade" title="Fontes" empty="Nenhuma fonte cadastrada para este item.">
             {item.fontes.map((source) => (
               <a
@@ -258,7 +303,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-md px-2.5 py-1 text-[10px] font-black ${
-                    source.tipo === "COMUNIDADE_ANIIDEX"
+                    source.tipo === "COMUNIDADE_ANIIDEX" || source.tipo === "COMUNIDADE_ASSET"
                       ? "bg-amber-300/10 text-amber-200"
                       : "bg-[var(--accent)]/10 text-[var(--accent)]"
                   }`}>
@@ -285,7 +330,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Política de dados</p>
             <h2 className="mt-2 text-2xl font-black">Informações em PT-BR com fonte rastreável</h2>
             <p className="mt-4 max-w-4xl leading-7 text-[var(--muted)]">
-              O Aniimo Brasil apresenta as informações ao público brasileiro em PT-BR. O nome original e os termos da fonte são preservados internamente para auditoria. Dados comunitários, como os reproduzidos do Aniidex, são identificados separadamente e podem mudar com patches até que uma fonte oficial permita confirmar ou substituir a informação.
+              O Aniimo Brasil apresenta as informações ao público brasileiro em PT-BR. O nome original e os termos da fonte são preservados internamente para auditoria. Dados comunitários são identificados separadamente, e mudanças entre testes, lançamento e patches ficam registradas no histórico para evitar que informações antigas sejam apresentadas como atuais.
             </p>
           </div>
         </section>
