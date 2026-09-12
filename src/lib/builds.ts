@@ -1,7 +1,6 @@
+import { CARRIED_ITEMS } from "@/lib/carried-items";
 import { getSql } from "@/lib/db";
-import { getItemsCatalog } from "@/lib/items";
-import type { ItemCatalogItem } from "@/types/item";
-import type { BuildFormItem } from "@/types/build";
+import type { BuildFormItem, CarriedItem } from "@/types/build";
 
 type BuildFormRow = {
   aniimo_numero: number;
@@ -21,7 +20,7 @@ type BuildFormRow = {
 
 export async function getBuildPlannerData(): Promise<{
   forms: BuildFormItem[];
-  items: ItemCatalogItem[];
+  carriedItems: CarriedItem[];
 }> {
   const sql = getSql();
 
@@ -103,8 +102,6 @@ export async function getBuildPlannerData(): Promise<{
       COALESCE(af.nome_pt_br, af.nome) ASC
   `) as BuildFormRow[];
 
-  const items = await getItemsCatalog();
-
   return {
     forms: rows.map((row) => ({
       aniimoNumero: row.aniimo_numero,
@@ -121,6 +118,6 @@ export async function getBuildPlannerData(): Promise<{
       traits: row.traits ?? [],
       habilidades: row.habilidades ?? [],
     })),
-    items,
+    carriedItems: CARRIED_ITEMS,
   };
 }
