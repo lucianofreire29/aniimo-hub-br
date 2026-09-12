@@ -8,6 +8,18 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "worldx-website-cdn.aniimo.com",
       },
+      {
+        protocol: "https",
+        hostname: "aniimoguide.com",
+      },
+      {
+        protocol: "https",
+        hostname: "aniimotools.dev",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.aniimoverse.com",
+      },
     ],
   },
 };
