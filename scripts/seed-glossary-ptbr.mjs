@@ -32,9 +32,9 @@ const GROUPS = [
   {
     table: "estagios",
     entries: [
-      ["Lumin", "Estágio Lumin"],
-      ["Gamma", "Estágio Gamma"],
-      ["Nova", "Estágio Nova"],
+      ["Lumin Stage", "Estágio Lumin"],
+      ["Gamma Stage", "Estágio Gamma"],
+      ["Nova Stage", "Estágio Nova"],
     ],
   },
 ];
