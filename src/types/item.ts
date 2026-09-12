@@ -57,6 +57,15 @@ export type ItemContent = {
   fonteUrl: string | null;
 };
 
+export type ItemChange = {
+  id: number;
+  tipo: string;
+  resumo: string;
+  detalhes: string | null;
+  fonteUrl: string | null;
+  verificadoEm: string | null;
+};
+
 export type ItemCatalogItem = {
   id: number;
   nome: string;
@@ -82,4 +91,5 @@ export type ItemDetail = ItemCatalogItem & {
   obtencoes: ItemObtainment[];
   efeitos: ItemEffect[];
   conteudos: ItemContent[];
+  alteracoes: ItemChange[];
 };
