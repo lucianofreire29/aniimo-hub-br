@@ -38,7 +38,7 @@
     "db:ptbr:aniimos:audit": "node scripts/audit-aniimos-ptbr.mjs",
     "db:ptbr:aniimos:finish": "npm run db:ptbr:aniimos:01 && npm run db:ptbr:aniimos:02 && npm run db:ptbr:aniimos:audit",
     "db:ptbr:audit": "node scripts/audit-localization-ptbr.mjs",
-    "db:ptbr:complete": "npm run db:ptbr:forms:finish && npm run db:ptbr:aniimos:finish && npm run db:ptbr:taxonomy && npm run db:ptbr:skills:finish && npm run db:ptbr:audit",
+    "db:ptbr:complete": "npm run db:ptbr:glossary && npm run db:ptbr:forms:finish && npm run db:ptbr:aniimos:finish && npm run db:ptbr:taxonomy && npm run db:ptbr:skills:finish && npm run db:ptbr:audit",
     "db:items:seed:01": "node scripts/seed-items-batch-01.mjs",
     "db:items:seed:02": "node scripts/seed-items-batch-02.mjs"
   },
