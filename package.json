@@ -42,6 +42,7 @@
     "db:items:seed:01": "node scripts/seed-items-batch-01.mjs",
     "db:items:seed:02": "node scripts/seed-items-batch-02.mjs",
     "db:items:community:01": "node scripts/seed-items-community-batch-01.mjs",
+    "db:items:community:02": "node scripts/seed-items-community-batch-02.mjs",
     "db:items:images": "node scripts/seed-item-images.mjs"
   },
   "dependencies": {
