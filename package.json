@@ -33,7 +33,12 @@
     "db:ptbr:skills:05": "node scripts/seed-skills-ptbr-batch-05.mjs",
     "db:ptbr:skills:audit": "node scripts/audit-skills-ptbr.mjs",
     "db:ptbr:skills:finish": "npm run db:ptbr:skills:01 && npm run db:ptbr:skills:02 && npm run db:ptbr:skills:03 && npm run db:ptbr:skills:04 && npm run db:ptbr:skills:05 && npm run db:ptbr:skills:audit",
-    "db:ptbr:complete": "npm run db:ptbr:forms:finish && npm run db:ptbr:taxonomy && npm run db:ptbr:skills:finish",
+    "db:ptbr:aniimos:01": "node scripts/seed-aniimos-ptbr-batch-01.mjs",
+    "db:ptbr:aniimos:02": "node scripts/seed-aniimos-ptbr-batch-02.mjs",
+    "db:ptbr:aniimos:audit": "node scripts/audit-aniimos-ptbr.mjs",
+    "db:ptbr:aniimos:finish": "npm run db:ptbr:aniimos:01 && npm run db:ptbr:aniimos:02 && npm run db:ptbr:aniimos:audit",
+    "db:ptbr:audit": "node scripts/audit-localization-ptbr.mjs",
+    "db:ptbr:complete": "npm run db:ptbr:forms:finish && npm run db:ptbr:aniimos:finish && npm run db:ptbr:taxonomy && npm run db:ptbr:skills:finish && npm run db:ptbr:audit",
     "db:items:seed:01": "node scripts/seed-items-batch-01.mjs",
     "db:items:seed:02": "node scripts/seed-items-batch-02.mjs"
   },
