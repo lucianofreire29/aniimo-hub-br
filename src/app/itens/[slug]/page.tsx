@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -73,7 +74,24 @@ export default async function ItemPage({ params }: ItemPageProps) {
               ← Voltar para Itens
             </Link>
 
-            <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_340px] lg:items-start">
+            <div className="mt-8 grid gap-8 lg:grid-cols-[280px_1fr_340px] lg:items-start">
+              <div className="flex min-h-72 items-center justify-center rounded-3xl border border-white/10 bg-[var(--surface)] p-6">
+                {item.imagemUrl ? (
+                  <Image
+                    src={item.imagemUrl}
+                    alt={displayName}
+                    width={320}
+                    height={320}
+                    priority
+                    className="h-64 w-64 object-contain"
+                  />
+                ) : (
+                  <div className="flex h-36 w-36 items-center justify-center rounded-full border border-dashed border-white/15 px-5 text-center text-sm font-semibold text-[var(--muted)]">
+                    Imagem em breve
+                  </div>
+                )}
+              </div>
+
               <div>
                 <div className="flex flex-wrap gap-2">
                   {categoryLabel ? (
@@ -152,7 +170,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
             </p>
             <h2 className="mt-2 text-2xl font-black">Como esta informação é tratada</h2>
             <p className="mt-4 max-w-3xl leading-7 text-[var(--muted)]">
-              O Aniimo Brasil preserva o nome e o conteúdo original em inglês. Quando existe localização oficial em português, ela é priorizada; nos demais casos, a tradução editorial do Aniimo Brasil é exibida com sua origem identificada.
+              O Aniimo Brasil preserva o nome e o conteúdo original em inglês. Quando existe localização oficial em português, ela é priorizada; nos demais casos, a tradução editorial do Aniimo Brasil é exibida com sua origem identificada. As imagens também só entram quando conseguimos associar o asset ao item com segurança.
             </p>
           </div>
         </section>
