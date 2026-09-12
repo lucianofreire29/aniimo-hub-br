@@ -13,6 +13,7 @@
     "db:ptbr:glossary": "node scripts/seed-glossary-ptbr.mjs",
     "db:ptbr:mobility:01": "node scripts/seed-mobility-pathfinding-ptbr-batch-01.mjs",
     "db:ptbr:mobility:02": "node scripts/seed-mobility-ptbr-batch-02.mjs",
+    "db:ptbr:forms:01": "node scripts/seed-forms-ptbr-batch-01.mjs",
     "db:items:seed:01": "node scripts/seed-items-batch-01.mjs",
     "db:items:seed:02": "node scripts/seed-items-batch-02.mjs"
   },
