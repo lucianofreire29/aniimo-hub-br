@@ -3,24 +3,30 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type LocalBuildRecord = {
-  itemIds: number[];
+  carriedItemId: string | null;
+  aniimoLevel: number;
+  enhancement: 0 | 10 | 20;
   notes: string;
 };
 
 type LocalBuildState = Record<string, LocalBuildRecord>;
 
-const STORAGE_KEY = "aniimo-brasil:builds:v1";
+const STORAGE_KEY = "aniimo-brasil:builds:v2";
 const BUILD_EVENT = "aniimo-brasil:builds-alteradas";
+const EMPTY_BUILD: LocalBuildRecord = {
+  carriedItemId: null,
+  aniimoLevel: 70,
+  enhancement: 0,
+  notes: "",
+};
 
-function sanitizeIds(value: unknown): number[] {
-  if (!Array.isArray(value)) return [];
-  return Array.from(
-    new Set(
-      value.filter(
-        (item): item is number => typeof item === "number" && Number.isInteger(item) && item > 0,
-      ),
-    ),
-  );
+function sanitizeLevel(value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 70;
+  return Math.min(100, Math.max(1, Math.round(value)));
+}
+
+function sanitizeEnhancement(value: unknown): 0 | 10 | 20 {
+  return value === 20 ? 20 : value === 10 ? 10 : 0;
 }
 
 function sanitizeState(value: unknown): LocalBuildState {
@@ -31,9 +37,17 @@ function sanitizeState(value: unknown): LocalBuildState {
   for (const [key, raw] of Object.entries(value)) {
     if (!/^\d+$/.test(key) || !raw || typeof raw !== "object" || Array.isArray(raw)) continue;
 
-    const record = raw as { itemIds?: unknown; notes?: unknown };
+    const record = raw as {
+      carriedItemId?: unknown;
+      aniimoLevel?: unknown;
+      enhancement?: unknown;
+      notes?: unknown;
+    };
+
     next[key] = {
-      itemIds: sanitizeIds(record.itemIds),
+      carriedItemId: typeof record.carriedItemId === "string" ? record.carriedItemId : null,
+      aniimoLevel: sanitizeLevel(record.aniimoLevel),
+      enhancement: sanitizeEnhancement(record.enhancement),
       notes: typeof record.notes === "string" ? record.notes.slice(0, 5000) : "",
     };
   }
@@ -78,30 +92,42 @@ export function useLocalBuilds() {
     };
   }, []);
 
-  const updateRecord = useCallback((formaId: number, updater: (current: LocalBuildRecord) => LocalBuildRecord) => {
-    const currentState = readState();
-    const key = String(formaId);
-    const current = currentState[key] ?? { itemIds: [], notes: "" };
-    const next = { ...currentState, [key]: updater(current) };
-    persistState(next);
-    setState(next);
-  }, []);
+  const updateRecord = useCallback(
+    (formaId: number, updater: (current: LocalBuildRecord) => LocalBuildRecord) => {
+      const currentState = readState();
+      const key = String(formaId);
+      const current = currentState[key] ?? EMPTY_BUILD;
+      const next = { ...currentState, [key]: updater(current) };
+      persistState(next);
+      setState(next);
+    },
+    [],
+  );
 
-  const setNotes = useCallback(
-    (formaId: number, notes: string) => {
-      updateRecord(formaId, (current) => ({ ...current, notes: notes.slice(0, 5000) }));
+  const setCarriedItem = useCallback(
+    (formaId: number, carriedItemId: string | null) => {
+      updateRecord(formaId, (current) => ({ ...current, carriedItemId }));
     },
     [updateRecord],
   );
 
-  const toggleItem = useCallback(
-    (formaId: number, itemId: number) => {
-      updateRecord(formaId, (current) => ({
-        ...current,
-        itemIds: current.itemIds.includes(itemId)
-          ? current.itemIds.filter((id) => id !== itemId)
-          : [...current.itemIds, itemId],
-      }));
+  const setAniimoLevel = useCallback(
+    (formaId: number, aniimoLevel: number) => {
+      updateRecord(formaId, (current) => ({ ...current, aniimoLevel: sanitizeLevel(aniimoLevel) }));
+    },
+    [updateRecord],
+  );
+
+  const setEnhancement = useCallback(
+    (formaId: number, enhancement: 0 | 10 | 20) => {
+      updateRecord(formaId, (current) => ({ ...current, enhancement }));
+    },
+    [updateRecord],
+  );
+
+  const setNotes = useCallback(
+    (formaId: number, notes: string) => {
+      updateRecord(formaId, (current) => ({ ...current, notes: notes.slice(0, 5000) }));
     },
     [updateRecord],
   );
@@ -115,15 +141,26 @@ export function useLocalBuilds() {
   }, []);
 
   const getBuild = useCallback(
-    (formaId: number): LocalBuildRecord => state[String(formaId)] ?? { itemIds: [], notes: "" },
+    (formaId: number): LocalBuildRecord => state[String(formaId)] ?? EMPTY_BUILD,
     [state],
   );
 
   const savedCount = useMemo(
     () =>
-      Object.values(state).filter((record) => record.itemIds.length > 0 || record.notes.trim().length > 0).length,
+      Object.values(state).filter(
+        (record) => record.carriedItemId || record.notes.trim().length > 0,
+      ).length,
     [state],
   );
 
-  return { isReady, getBuild, setNotes, toggleItem, clearBuild, savedCount };
+  return {
+    isReady,
+    getBuild,
+    setCarriedItem,
+    setAniimoLevel,
+    setEnhancement,
+    setNotes,
+    clearBuild,
+    savedCount,
+  };
 }
