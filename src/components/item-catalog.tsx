@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -125,53 +126,75 @@ export function ItemCatalog({ items }: ItemCatalogProps) {
           return (
             <article
               key={item.id}
-              className="flex min-h-72 flex-col rounded-2xl border border-white/10 bg-[var(--surface)] p-6 transition hover:border-[var(--accent)]/30"
+              className="flex min-h-[28rem] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[var(--surface)] transition hover:border-[var(--accent)]/30"
             >
-              <div className="flex flex-wrap items-center gap-2">
-                {categoryLabel && (
-                  <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-xs font-bold text-[var(--accent)]">
-                    {categoryLabel}
-                  </span>
+              <Link
+                href={`/itens/${item.slug}`}
+                className="relative flex h-48 items-center justify-center border-b border-white/10 bg-white/[0.025] p-5"
+                aria-label={`Ver ${displayName}`}
+              >
+                {item.imagemUrl ? (
+                  <Image
+                    src={item.imagemUrl}
+                    alt={displayName}
+                    width={220}
+                    height={220}
+                    className="h-40 w-40 object-contain transition duration-200 hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-28 w-28 items-center justify-center rounded-full border border-dashed border-white/15 px-4 text-center text-xs font-semibold text-[var(--muted)]">
+                    Imagem em breve
+                  </div>
                 )}
-                {!item.categoria && (
+              </Link>
+
+              <div className="flex flex-1 flex-col p-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  {categoryLabel && (
+                    <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-xs font-bold text-[var(--accent)]">
+                      {categoryLabel}
+                    </span>
+                  )}
+                  {!item.categoria && (
+                    <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-[var(--muted)]">
+                      Categoria não informada
+                    </span>
+                  )}
                   <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-[var(--muted)]">
-                    Categoria não informada
+                    {translationLabel}
                   </span>
+                </div>
+
+                <h2 className="mt-5 text-2xl font-black tracking-tight">{displayName}</h2>
+                {item.nomePtBr && item.nomePtBr !== item.nome && (
+                  <p className="mt-1 text-sm text-[var(--muted)]">Nome original: {item.nome}</p>
                 )}
-                <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-[var(--muted)]">
-                  {translationLabel}
-                </span>
-              </div>
 
-              <h2 className="mt-5 text-2xl font-black tracking-tight">{displayName}</h2>
-              {item.nomePtBr && item.nomePtBr !== item.nome && (
-                <p className="mt-1 text-sm text-[var(--muted)]">Nome original: {item.nome}</p>
-              )}
+                <p className="mt-4 flex-1 text-sm leading-7 text-[var(--muted)]">
+                  {description ??
+                    (item.descricao
+                      ? "Tradução da descrição em PT-BR ainda está em revisão."
+                      : "Descrição ainda não disponível na fonte cadastrada.")}
+                </p>
 
-              <p className="mt-4 flex-1 text-sm leading-7 text-[var(--muted)]">
-                {description ??
-                  (item.descricao
-                    ? "Tradução da descrição em PT-BR ainda está em revisão."
-                    : "Descrição ainda não disponível na fonte cadastrada.")}
-              </p>
-
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4 text-xs">
-                <Link
-                  href={`/itens/${item.slug}`}
-                  className="rounded-lg bg-[var(--accent)]/10 px-3 py-2 font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
-                >
-                  Ver detalhes →
-                </Link>
-                {item.fonteUrl && (
-                  <a
-                    href={item.fonteUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-bold text-[var(--muted)] hover:text-[var(--accent)] hover:underline"
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4 text-xs">
+                  <Link
+                    href={`/itens/${item.slug}`}
+                    className="rounded-lg bg-[var(--accent)]/10 px-3 py-2 font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
                   >
-                    Fonte oficial ↗
-                  </a>
-                )}
+                    Ver detalhes →
+                  </Link>
+                  {item.fonteUrl && (
+                    <a
+                      href={item.fonteUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-[var(--muted)] hover:text-[var(--accent)] hover:underline"
+                    >
+                      Fonte oficial ↗
+                    </a>
+                  )}
+                </div>
               </div>
             </article>
           );
