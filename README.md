@@ -2,13 +2,24 @@
 
 Portal brasileiro de informações, ferramentas e comunidade sobre **Aniimo**.
 
-> **Projeto de fã não oficial.** O Aniimo Brasil é um projeto independente, criado pela comunidade e sem afiliação, patrocínio, administração ou endosso dos criadores, publicadores ou demais titulares de Aniimo. Nomes, marcas, imagens e outros materiais oficiais mencionados pertencem aos seus respectivos titulares e são utilizados apenas para fins informativos e de identificação.
+## Aviso de projeto de fã
+
+O **Aniimo Brasil** é um projeto de fã, independente e não oficial. Não possui afiliação, patrocínio ou endosso da equipe responsável por Aniimo.
+
+Nomes, marcas, personagens, imagens e demais materiais oficiais pertencem aos seus respectivos titulares. Conteúdos comunitários e referências externas são identificados por fonte sempre que possível.
 
 ## Objetivo
 
-O **Aniimo Brasil** será uma plataforma em português com catálogo de Aniimos, formas, atributos, elementos, habilidades, evoluções, habitats, itens, guias e outras ferramentas para a comunidade brasileira.
+O **Aniimo Brasil** será uma plataforma em português com catálogo de Aniimos, formas, atributos, elementos, habilidades, evoluções, habitats, guias e outras ferramentas para a comunidade brasileira.
 
-O projeto prioriza informações em **PT-BR**, preservando a referência ao conteúdo original e identificando a procedência dos dados. Fontes oficiais são priorizadas; informações comunitárias são apresentadas separadamente e com rastreabilidade.
+## Política de dados e mídia
+
+- A interface prioriza PT-BR para o público brasileiro.
+- Termos originais são preservados internamente para auditoria e rastreabilidade.
+- Fontes oficiais têm prioridade.
+- Dados comunitários são identificados como não oficiais e podem ser revisados após patches.
+- Imagens externas utilizadas no catálogo devem ter a procedência registrada no banco.
+- Não cadastramos recompensas ou conteúdos internos de caixas/pacotes sem uma fonte verificável.
 
 ## Stack inicial
 
