@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { useLocalBuilds } from "@/lib/build-storage";
-import type { BuildFormItem, BuildStatKey, CarriedItem } from "@/types/build";
+import type { BuildFormItem, BuildPotential, BuildStatKey, CarriedItem } from "@/types/build";
 
 type BuildPlannerProps = {
   forms: BuildFormItem[];
@@ -17,6 +17,23 @@ type FlatGain = {
   rotulo: string;
   value: number;
 } | null;
+
+type PotentialConfig = {
+  stat: BuildStatKey;
+  label: string;
+  flatPerPoint: number;
+  milestonePerFive: number;
+  milestoneLabel: string;
+};
+
+const POTENTIAL_CONFIG: PotentialConfig[] = [
+  { stat: "hp", label: "HP", flatPerPoint: 40, milestonePerFive: 8, milestoneLabel: "% HP" },
+  { stat: "ataque", label: "ATK", flatPerPoint: 2, milestonePerFive: 8, milestoneLabel: "% ATK" },
+  { stat: "pDef", label: "P. DEF", flatPerPoint: 3, milestonePerFive: 8, milestoneLabel: "% P. DEF" },
+  { stat: "mDef", label: "M. DEF", flatPerPoint: 3, milestonePerFive: 8, milestoneLabel: "% M. DEF" },
+  { stat: "break", label: "BREAK", flatPerPoint: 4, milestonePerFive: 2, milestoneLabel: "% chance crítica" },
+  { stat: "regen", label: "REGEN", flatPerPoint: 3, milestonePerFive: 3, milestoneLabel: "% redução de recarga" },
+];
 
 function normalize(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -54,8 +71,25 @@ function calculateFlatGain(item: CarriedItem | null, level: number, enhancement:
   };
 }
 
-function getBonusForStat(flatGain: FlatGain, stat: BuildStatKey) {
+function getItemBonusForStat(flatGain: FlatGain, stat: BuildStatKey) {
   return flatGain?.atributo === stat ? flatGain.value : 0;
+}
+
+function getPotentialConfig(stat: BuildStatKey) {
+  return POTENTIAL_CONFIG.find((item) => item.stat === stat)!;
+}
+
+function getPotentialFlatGain(potential: BuildPotential, stat: BuildStatKey) {
+  return potential[stat] * getPotentialConfig(stat).flatPerPoint;
+}
+
+function getPotentialMilestoneText(config: PotentialConfig, points: number) {
+  const milestones = Math.floor(points / 5);
+  if (milestones === 0) {
+    return `Próximo marco em ${5 - (points % 5)} ponto${5 - (points % 5) === 1 ? "" : "s"}`;
+  }
+
+  return `Marcos: +${milestones * config.milestonePerFive}${config.milestoneLabel}`;
 }
 
 export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
@@ -65,6 +99,7 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
     setCarriedItem,
     setAniimoLevel,
     setEnhancement,
+    setPotential,
     setNotes,
     clearBuild,
     savedCount,
@@ -118,7 +153,12 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
   const activeItem = carriedItems.find((item) => item.id === build.carriedItemId) ?? null;
   const flatGain = calculateFlatGain(activeItem, build.aniimoLevel, build.enhancement);
   const currentStat = flatGain ? getStatValue(activeForm, flatGain.atributo) : null;
-  const finalStat = currentStat !== null && flatGain ? currentStat + flatGain.value : null;
+  const potentialOnItemStat = flatGain ? getPotentialFlatGain(build.potential, flatGain.atributo) : 0;
+  const finalStat =
+    currentStat !== null && flatGain
+      ? currentStat + potentialOnItemStat + flatGain.value
+      : null;
+  const potentialPoints = Object.values(build.potential).reduce((total, value) => total + value, 0);
 
   return (
     <div className="grid gap-6 xl:grid-cols-[19rem_minmax(0,1fr)]">
@@ -142,7 +182,11 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
           {visibleForms.map((form) => {
             const selected = form.formaId === activeForm.formaId;
             const saved = getBuild(form.formaId);
-            const hasSavedBuild = Boolean(saved.carriedItemId || saved.notes.trim());
+            const hasSavedBuild = Boolean(
+              saved.carriedItemId ||
+                saved.notes.trim() ||
+                Object.values(saved.potential).some((value) => value > 0),
+            );
 
             return (
               <button
@@ -247,7 +291,7 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
               <div>
                 <h2 className="text-xl font-black">Atributos da build</h2>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  O total inclui bônus planos confirmados do Carried Item equipado.
+                  Total = atributo cadastrado + ganho plano de Potential + bônus plano calculável do Carried Item.
                 </p>
               </div>
               {flatGain && (
@@ -258,27 +302,109 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-              <Stat label="HP" value={activeForm.atributos.hp} />
+              <Stat
+                label="HP"
+                value={activeForm.atributos.hp}
+                potentialBonus={getPotentialFlatGain(build.potential, "hp")}
+              />
               <Stat
                 label="ATK"
                 value={activeForm.atributos.ataque}
-                bonus={getBonusForStat(flatGain, "ataque")}
+                potentialBonus={getPotentialFlatGain(build.potential, "ataque")}
+                itemBonus={getItemBonusForStat(flatGain, "ataque")}
               />
               <Stat
                 label="BREAK"
                 value={activeForm.atributos.break}
-                bonus={getBonusForStat(flatGain, "break")}
+                potentialBonus={getPotentialFlatGain(build.potential, "break")}
+                itemBonus={getItemBonusForStat(flatGain, "break")}
               />
               <Stat
                 label="REGEN"
                 value={activeForm.atributos.regen}
-                bonus={getBonusForStat(flatGain, "regen")}
+                potentialBonus={getPotentialFlatGain(build.potential, "regen")}
+                itemBonus={getItemBonusForStat(flatGain, "regen")}
               />
-              <Stat label="M. DEF" value={activeForm.atributos.mDef} />
-              <Stat label="P. DEF" value={activeForm.atributos.pDef} />
+              <Stat
+                label="M. DEF"
+                value={activeForm.atributos.mDef}
+                potentialBonus={getPotentialFlatGain(build.potential, "mDef")}
+              />
+              <Stat
+                label="P. DEF"
+                value={activeForm.atributos.pDef}
+                potentialBonus={getPotentialFlatGain(build.potential, "pDef")}
+              />
             </div>
           </section>
         )}
+
+        <section className="rounded-3xl border border-white/10 bg-[var(--surface)] p-5 sm:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Progressão da build</p>
+              <h2 className="mt-2 text-2xl font-black">Potential / Awakening</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
+                Cada ponto adiciona um ganho plano ao atributo. A cada 5 pontos há um efeito adicional; esses marcos são mostrados separadamente e não entram no total bruto sem uma fórmula completa confirmada.
+              </p>
+            </div>
+            <span className="text-sm font-bold text-[var(--accent)]">{potentialPoints} pontos distribuídos</span>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {POTENTIAL_CONFIG.map((config) => {
+              const points = build.potential[config.stat];
+              const flat = points * config.flatPerPoint;
+
+              return (
+                <div key={config.stat} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-black">{config.label}</p>
+                      <p className="mt-1 text-xs font-semibold text-[var(--accent)]">
+                        +{formatNumber(flat)} {config.label} plano
+                      </p>
+                    </div>
+                    <div className="flex items-center rounded-xl border border-white/10 bg-[var(--surface)]">
+                      <button
+                        type="button"
+                        onClick={() => setPotential(activeForm.formaId, config.stat, points - 1)}
+                        className="px-3 py-2 font-black text-[var(--muted)] hover:text-white"
+                        aria-label={`Diminuir Potential de ${config.label}`}
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min={0}
+                        max={20}
+                        value={points}
+                        onChange={(event) => setPotential(activeForm.formaId, config.stat, Number(event.target.value))}
+                        className="w-12 border-x border-white/10 bg-transparent py-2 text-center text-sm font-black outline-none"
+                        aria-label={`Potential de ${config.label}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPotential(activeForm.formaId, config.stat, points + 1)}
+                        className="px-3 py-2 font-black text-[var(--muted)] hover:text-white"
+                        aria-label={`Aumentar Potential de ${config.label}`}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
+                    {getPotentialMilestoneText(config, points)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
+            Modelo atual usado para planejamento: HP +40, ATK +2, P.DEF +3, M.DEF +3, BREAK +4 e REGEN +3 por ponto. O limite aplicado aqui é 20 por atributo; não fixamos um teto global porque a allowance exibida pode variar conforme o contexto do Aniimo.
+          </p>
+        </section>
 
         <section className="rounded-3xl border border-[var(--accent)]/25 bg-[var(--surface)] p-5 sm:p-6">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Equipamento do Aniimo</p>
@@ -386,16 +512,16 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
                 {flatGain ? (
                   <>
                     <p className="mt-2 text-3xl font-black text-[var(--accent)]">
-                      +{formatNumber(flatGain.value)} {flatGain.rotulo}
+                      +{formatNumber(flatGain.value)} {flatGain.rotulo} pelo equipamento
                     </p>
                     {currentStat !== null && finalStat !== null && (
                       <p className="mt-2 text-base font-bold">
-                        {formatNumber(currentStat)} + {formatNumber(flatGain.value)} = <span className="text-[var(--accent)]">{formatNumber(finalStat)} {flatGain.rotulo}</span>
+                        Base {formatNumber(currentStat)} + Potential {formatNumber(potentialOnItemStat)} + Item {formatNumber(flatGain.value)} = <span className="text-[var(--accent)]">{formatNumber(finalStat)} {flatGain.rotulo}</span>
                       </p>
                     )}
                     <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                       Calculado para Aniimo nível {build.aniimoLevel}
-                      {build.enhancement >= 10 && activeItem.melhoria10?.valor ? ` e equipamento +${build.enhancement}` : ""}. O mesmo total já aparece no card de atributo acima.
+                      {build.enhancement >= 10 && activeItem.melhoria10?.valor ? ` e equipamento +${build.enhancement}` : ""}. O mesmo total aparece no card de atributo acima.
                     </p>
                   </>
                 ) : (
@@ -453,9 +579,26 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
   );
 }
 
-function Stat({ label, value, bonus = 0 }: { label: string; value: number | null; bonus?: number }) {
-  const total = value === null ? null : value + bonus;
-  const changed = value !== null && bonus !== 0;
+function Stat({
+  label,
+  value,
+  potentialBonus = 0,
+  itemBonus = 0,
+}: {
+  label: string;
+  value: number | null;
+  potentialBonus?: number;
+  itemBonus?: number;
+}) {
+  const total = value === null ? null : value + potentialBonus + itemBonus;
+  const changed = value !== null && (potentialBonus !== 0 || itemBonus !== 0);
+  const details = value === null
+    ? []
+    : [
+        `Base ${formatNumber(value)}`,
+        ...(potentialBonus ? [`Potential +${formatNumber(potentialBonus)}`] : []),
+        ...(itemBonus ? [`Item +${formatNumber(itemBonus)}`] : []),
+      ];
 
   return (
     <div
@@ -467,9 +610,9 @@ function Stat({ label, value, bonus = 0 }: { label: string; value: number | null
       <p className={`mt-1 text-xl font-black ${changed ? "text-[var(--accent)]" : ""}`}>
         {total === null ? "—" : formatNumber(total)}
       </p>
-      {changed && (
-        <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">
-          Base {formatNumber(value)} + {formatNumber(bonus)}
+      {details.length > 1 && (
+        <p className="mt-1 text-[11px] font-semibold leading-4 text-[var(--muted)]">
+          {details.join(" • ")}
         </p>
       )}
     </div>
