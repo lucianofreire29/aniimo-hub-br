@@ -1,6 +1,7 @@
 import { getSql } from "@/lib/db";
 import type {
   ItemCatalogItem,
+  ItemChange,
   ItemContent,
   ItemDetail,
   ItemEffect,
@@ -82,6 +83,15 @@ type ContentRow = {
   fonte_url: string | null;
 };
 
+type ChangeRow = {
+  id: number | string;
+  tipo: string;
+  resumo: string;
+  detalhes: string | null;
+  fonte_url: string | null;
+  verificado_em: string | Date | null;
+};
+
 const ITEM_SELECT = `
   SELECT
     i.id,
@@ -108,6 +118,7 @@ const ITEM_SELECT = `
         JOIN fontes fx ON fx.id = ix.fonte_id
        WHERE ix.item_id = i.id
          AND fx.tipo LIKE 'COMUNIDADE%'
+         AND fx.tipo <> 'COMUNIDADE_ASSET'
     ) AS tem_dados_comunitarios
   FROM itens i
   LEFT JOIN item_categorias c ON c.id = i.categoria_id
@@ -203,7 +214,7 @@ export async function getItemBySlug(slug: string): Promise<ItemDetail | null> {
 
     const item = mapItem(rows[0]);
 
-    const [sourceRows, obtainmentRows, effectRows, contentRows] = await Promise.all([
+    const [sourceRows, obtainmentRows, effectRows, contentRows, changeRows] = await Promise.all([
       sql.query(
         `
           SELECT f.tipo, f.titulo, f.url, item_source.escopo,
@@ -272,6 +283,17 @@ export async function getItemBySlug(slug: string): Promise<ItemDetail | null> {
         `,
         [item.id],
       ),
+      sql.query(
+        `
+          SELECT a.id, a.tipo, a.resumo, a.detalhes,
+                 f.url AS fonte_url, a.verificado_em
+            FROM item_alteracoes a
+            LEFT JOIN fontes f ON f.id = a.fonte_id
+           WHERE a.item_id = $1
+           ORDER BY a.verificado_em DESC NULLS LAST, a.id DESC
+        `,
+        [item.id],
+      ),
     ]);
 
     const fontes: ItemSource[] = (sourceRows as SourceRow[]).map((row) => ({
@@ -325,7 +347,16 @@ export async function getItemBySlug(slug: string): Promise<ItemDetail | null> {
       fonteUrl: row.fonte_url,
     }));
 
-    return { ...item, fontes, obtencoes, efeitos, conteudos };
+    const alteracoes: ItemChange[] = (changeRows as ChangeRow[]).map((row) => ({
+      id: Number(row.id),
+      tipo: row.tipo,
+      resumo: row.resumo,
+      detalhes: row.detalhes,
+      fonteUrl: row.fonte_url,
+      verificadoEm: isoOrNull(row.verificado_em),
+    }));
+
+    return { ...item, fontes, obtencoes, efeitos, conteudos, alteracoes };
   } catch (error) {
     if (getErrorCode(error) === "42P01") return null;
     throw error;
