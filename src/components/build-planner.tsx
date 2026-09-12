@@ -12,6 +12,12 @@ type BuildPlannerProps = {
   carriedItems: CarriedItem[];
 };
 
+type FlatGain = {
+  atributo: BuildStatKey;
+  rotulo: string;
+  value: number;
+} | null;
+
 function normalize(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
@@ -20,7 +26,7 @@ function numeroFormatado(numero: number) {
   return `#${String(numero).padStart(3, "0")}`;
 }
 
-function formatBonus(value: number) {
+function formatNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(".", ",");
 }
 
@@ -28,10 +34,11 @@ function getStatValue(form: BuildFormItem, stat: BuildStatKey) {
   return form.atributos?.[stat] ?? null;
 }
 
-function calculateFlatGain(item: CarriedItem | null, level: number, enhancement: 0 | 10 | 20) {
+function calculateFlatGain(item: CarriedItem | null, level: number, enhancement: 0 | 10 | 20): FlatGain {
   if (!item?.escalaPorNivel) return null;
 
   let value = item.escalaPorNivel.valor * level;
+
   if (
     enhancement >= 10 &&
     item.melhoria10?.atributo === item.escalaPorNivel.atributo &&
@@ -45,6 +52,10 @@ function calculateFlatGain(item: CarriedItem | null, level: number, enhancement:
     rotulo: item.escalaPorNivel.rotulo,
     value,
   };
+}
+
+function getBonusForStat(flatGain: FlatGain, stat: BuildStatKey) {
+  return flatGain?.atributo === stat ? flatGain.value : 0;
 }
 
 export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
@@ -107,6 +118,7 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
   const activeItem = carriedItems.find((item) => item.id === build.carriedItemId) ?? null;
   const flatGain = calculateFlatGain(activeItem, build.aniimoLevel, build.enhancement);
   const currentStat = flatGain ? getStatValue(activeForm, flatGain.atributo) : null;
+  const finalStat = currentStat !== null && flatGain ? currentStat + flatGain.value : null;
 
   return (
     <div className="grid gap-6 xl:grid-cols-[19rem_minmax(0,1fr)]">
@@ -148,7 +160,13 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
               >
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/[0.03] p-1">
                   {form.imagemUrl ? (
-                    <Image src={form.imagemUrl} alt={form.aniimoNome} width={72} height={72} className="h-full w-full object-contain" />
+                    <Image
+                      src={form.imagemUrl}
+                      alt={form.aniimoNome}
+                      width={72}
+                      height={72}
+                      className="h-full w-full object-contain"
+                    />
                   ) : (
                     <span className="text-[9px] text-[var(--muted)]">Sem imagem</span>
                   )}
@@ -188,22 +206,34 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
               <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
                 <span className="text-[var(--accent)]">{numeroFormatado(activeForm.aniimoNumero)}</span>
                 <span className="rounded-full border border-white/10 px-2.5 py-1 text-[var(--muted)]">{activeForm.funcao}</span>
-                {activeForm.estagio && <span className="rounded-full border border-white/10 px-2.5 py-1 text-[var(--muted)]">{activeForm.estagio}</span>}
+                {activeForm.estagio && (
+                  <span className="rounded-full border border-white/10 px-2.5 py-1 text-[var(--muted)]">{activeForm.estagio}</span>
+                )}
               </div>
               <h2 className="mt-3 text-3xl font-black">{activeForm.aniimoNome}</h2>
               <p className="mt-1 font-semibold text-[var(--muted)]">{activeForm.formaNome}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {activeForm.elementos.map((elemento) => (
-                  <span key={`${elemento.nome}-${elemento.principal}`} className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-[var(--muted)]">
+                  <span
+                    key={`${elemento.nome}-${elemento.principal}`}
+                    className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-[var(--muted)]"
+                  >
                     {elemento.nome}{elemento.principal ? " • principal" : ""}
                   </span>
                 ))}
               </div>
               <div className="mt-5 flex flex-wrap gap-3">
-                <Link href={`/aniimos/${activeForm.aniimoSlug}#${activeForm.formaSlug}`} className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-black text-black">
+                <Link
+                  href={`/aniimos/${activeForm.aniimoSlug}#${activeForm.formaSlug}`}
+                  className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-black text-black"
+                >
                   Ver detalhes completos
                 </Link>
-                <button type="button" onClick={() => clearBuild(activeForm.formaId)} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-bold text-[var(--muted)]">
+                <button
+                  type="button"
+                  onClick={() => clearBuild(activeForm.formaId)}
+                  className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-bold text-[var(--muted)]"
+                >
                   Limpar build
                 </button>
               </div>
@@ -213,12 +243,37 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
 
         {activeForm.atributos && (
           <section className="rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
-            <h2 className="text-xl font-black">Atributos cadastrados</h2>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-xl font-black">Atributos da build</h2>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  O total inclui bônus planos confirmados do Carried Item equipado.
+                </p>
+              </div>
+              {flatGain && (
+                <span className="text-sm font-bold text-[var(--accent)]">
+                  {activeItem?.nome}: +{formatNumber(flatGain.value)} {flatGain.rotulo}
+                </span>
+              )}
+            </div>
+
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
               <Stat label="HP" value={activeForm.atributos.hp} />
-              <Stat label="ATK" value={activeForm.atributos.ataque} />
-              <Stat label="BREAK" value={activeForm.atributos.break} />
-              <Stat label="REGEN" value={activeForm.atributos.regen} />
+              <Stat
+                label="ATK"
+                value={activeForm.atributos.ataque}
+                bonus={getBonusForStat(flatGain, "ataque")}
+              />
+              <Stat
+                label="BREAK"
+                value={activeForm.atributos.break}
+                bonus={getBonusForStat(flatGain, "break")}
+              />
+              <Stat
+                label="REGEN"
+                value={activeForm.atributos.regen}
+                bonus={getBonusForStat(flatGain, "regen")}
+              />
               <Stat label="M. DEF" value={activeForm.atributos.mDef} />
               <Stat label="P. DEF" value={activeForm.atributos.pDef} />
             </div>
@@ -243,7 +298,11 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
                 onChange={(event) => setAniimoLevel(activeForm.formaId, Number(event.target.value))}
                 className="w-full rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3 outline-none focus:border-[var(--accent)]/50"
               />
+              <span className="mt-2 block text-xs leading-5 text-[var(--muted)]">
+                O nível altera os bônus de equipamentos que escalam por nível. O crescimento natural dos atributos do Aniimo só será aplicado quando a fórmula correspondente estiver confirmada.
+              </span>
             </label>
+
             <label>
               <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Melhoria do item</span>
               <select
@@ -269,12 +328,17 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {visibleItems.map((item) => {
               const selected = activeItem?.id === item.id;
+
               return (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setCarriedItem(activeForm.formaId, selected ? null : item.id)}
-                  className={`rounded-2xl border p-4 text-left transition ${selected ? "border-[var(--accent)]/45 bg-[var(--accent)]/10" : "border-white/10 hover:border-white/20"}`}
+                  className={`rounded-2xl border p-4 text-left transition ${
+                    selected
+                      ? "border-[var(--accent)]/45 bg-[var(--accent)]/10"
+                      : "border-white/10 hover:border-white/20"
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -297,29 +361,46 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
                   <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--accent)]">Equipado</p>
                   <h3 className="mt-1 text-2xl font-black">{activeItem.nome}</h3>
                 </div>
-                <button type="button" onClick={() => setCarriedItem(activeForm.formaId, null)} className="text-sm font-bold text-[var(--muted)] hover:text-white">Remover</button>
+                <button
+                  type="button"
+                  onClick={() => setCarriedItem(activeForm.formaId, null)}
+                  className="text-sm font-bold text-[var(--muted)] hover:text-white"
+                >
+                  Remover
+                </button>
               </div>
 
               <div className="mt-5 grid gap-3 md:grid-cols-2">
                 <Effect title="Bônus-base" text={activeItem.bonusBase} />
                 <Effect title="Efeito principal" text={activeItem.efeitoCore} />
-                {build.enhancement >= 10 && activeItem.melhoria10 && <Effect title="Efeito +10" text={activeItem.melhoria10.descricao} />}
-                {build.enhancement >= 20 && activeItem.melhoria20 && <Effect title="Efeito +20" text={activeItem.melhoria20} />}
+                {build.enhancement >= 10 && activeItem.melhoria10 && (
+                  <Effect title="Efeito +10" text={activeItem.melhoria10.descricao} />
+                )}
+                {build.enhancement >= 20 && activeItem.melhoria20 && (
+                  <Effect title="Efeito +20" text={activeItem.melhoria20} />
+                )}
               </div>
 
               <div className="mt-5 rounded-2xl border border-white/10 bg-[var(--surface)] p-4">
                 <h4 className="font-black">Impacto calculável neste Aniimo</h4>
                 {flatGain ? (
                   <>
-                    <p className="mt-2 text-3xl font-black text-[var(--accent)]">+{formatBonus(flatGain.value)} {flatGain.rotulo}</p>
+                    <p className="mt-2 text-3xl font-black text-[var(--accent)]">
+                      +{formatNumber(flatGain.value)} {flatGain.rotulo}
+                    </p>
+                    {currentStat !== null && finalStat !== null && (
+                      <p className="mt-2 text-base font-bold">
+                        {formatNumber(currentStat)} + {formatNumber(flatGain.value)} = <span className="text-[var(--accent)]">{formatNumber(finalStat)} {flatGain.rotulo}</span>
+                      </p>
+                    )}
                     <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                      Calculado para o nível {build.aniimoLevel}{build.enhancement >= 10 && activeItem.melhoria10?.valor ? ` e item +${build.enhancement}` : ""}.
-                      {currentStat !== null ? ` O atributo cadastrado desta forma é ${currentStat}; o bônus do equipamento é exibido separadamente para não misturar fórmulas ainda não confirmadas.` : ""}
+                      Calculado para Aniimo nível {build.aniimoLevel}
+                      {build.enhancement >= 10 && activeItem.melhoria10?.valor ? ` e equipamento +${build.enhancement}` : ""}. O mesmo total já aparece no card de atributo acima.
                     </p>
                   </>
                 ) : (
                   <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                    Este item trabalha com bônus percentuais ou efeitos condicionais. O efeito é mostrado acima, mas não transformamos isso em um número final sem uma fórmula confirmada do jogo.
+                    Este equipamento trabalha com bônus percentuais ou efeitos condicionais. Esses efeitos são mostrados acima, mas não alteramos um atributo bruto sem uma fórmula confirmada que permita calcular o valor final corretamente.
                   </p>
                 )}
               </div>
@@ -340,11 +421,17 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
               </div>
             ))}
           </InfoSection>
+
           <InfoSection title="Habilidades" emptyText="Nenhuma habilidade cadastrada para esta forma.">
             {activeForm.habilidades.map((habilidade) => (
-              <div key={`${habilidade.ordem ?? "x"}-${habilidade.nome}`} className="rounded-2xl border border-white/10 bg-[var(--surface)] p-4">
+              <div
+                key={`${habilidade.ordem ?? "x"}-${habilidade.nome}`}
+                className="rounded-2xl border border-white/10 bg-[var(--surface)] p-4"
+              >
                 <h3 className="font-black">{habilidade.nome}</h3>
-                {habilidade.descricao && <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{habilidade.descricao}</p>}
+                {habilidade.descricao && (
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{habilidade.descricao}</p>
+                )}
               </div>
             ))}
           </InfoSection>
@@ -366,11 +453,25 @@ export function BuildPlanner({ forms, carriedItems }: BuildPlannerProps) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number | null }) {
+function Stat({ label, value, bonus = 0 }: { label: string; value: number | null; bonus?: number }) {
+  const total = value === null ? null : value + bonus;
+  const changed = value !== null && bonus !== 0;
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-[var(--surface)] p-4">
+    <div
+      className={`rounded-2xl border p-4 ${
+        changed ? "border-[var(--accent)]/35 bg-[var(--accent)]/5" : "border-white/10 bg-[var(--surface)]"
+      }`}
+    >
       <p className="text-xs font-bold text-[var(--muted)]">{label}</p>
-      <p className="mt-1 text-xl font-black">{value ?? "—"}</p>
+      <p className={`mt-1 text-xl font-black ${changed ? "text-[var(--accent)]" : ""}`}>
+        {total === null ? "—" : formatNumber(total)}
+      </p>
+      {changed && (
+        <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">
+          Base {formatNumber(value)} + {formatNumber(bonus)}
+        </p>
+      )}
     </div>
   );
 }
@@ -384,12 +485,25 @@ function Effect({ title, text }: { title: string; text: string }) {
   );
 }
 
-function InfoSection({ title, emptyText, children }: { title: string; emptyText: string; children: React.ReactNode }) {
+function InfoSection({
+  title,
+  emptyText,
+  children,
+}: {
+  title: string;
+  emptyText: string;
+  children: React.ReactNode;
+}) {
   const count = Array.isArray(children) ? children.length : children ? 1 : 0;
+
   return (
     <section className="rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
       <h2 className="text-xl font-black">{title}</h2>
-      {count > 0 ? <div className="mt-4 space-y-3">{children}</div> : <p className="mt-3 text-sm text-[var(--muted)]">{emptyText}</p>}
+      {count > 0 ? (
+        <div className="mt-4 space-y-3">{children}</div>
+      ) : (
+        <p className="mt-3 text-sm text-[var(--muted)]">{emptyText}</p>
+      )}
     </section>
   );
 }
