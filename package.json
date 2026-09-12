@@ -40,7 +40,8 @@
     "db:ptbr:audit": "node scripts/audit-localization-ptbr.mjs",
     "db:ptbr:complete": "npm run db:ptbr:glossary && npm run db:ptbr:forms:finish && npm run db:ptbr:aniimos:finish && npm run db:ptbr:taxonomy && npm run db:ptbr:skills:finish && npm run db:ptbr:audit",
     "db:items:seed:01": "node scripts/seed-items-batch-01.mjs",
-    "db:items:seed:02": "node scripts/seed-items-batch-02.mjs"
+    "db:items:seed:02": "node scripts/seed-items-batch-02.mjs",
+    "db:items:images": "node scripts/seed-item-images.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
